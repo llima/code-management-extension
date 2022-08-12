@@ -1,0 +1,6 @@
+{
+    "id": "code-management-dev",
+    "name": "Code Management DEV",
+    "public": false,
+    "baseUri": "https://localhost:3000"    
+}

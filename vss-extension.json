@@ -1,0 +1,63 @@
+{
+    "manifestVersion": 1,
+    "version": "1.0.19",
+    "id": "code-management",
+    "publisher": "llima",
+    "name": "Code Management",
+    "description": "Code management extension for Azure DevOps",
+    "categories": [
+        "Azure Boards"
+    ],
+    "tags": [
+        "Work Item",
+        "Work Item control"
+    ],
+    "scopes": [
+        "vso.work"
+    ],
+    "targets": [
+        { "id": "Microsoft.VisualStudio.Services" }
+    ],
+    "icons": {
+        "default": "azure/icon.png",
+        "branding": "azure/icon.png"
+    },
+    "content": {
+        "details": {
+            "path": "README.md"
+        },
+        "license": {
+            "path": "azure/license.md"
+        }
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/llima/code-management-extension"
+    },
+    "files": [
+        {
+            "path": "azure",
+            "addressable": true
+        },
+        {
+            "path": "feature/build",
+            "addressable": true
+        }
+    ],
+    "contributions": [
+        {  
+            "id": "code-management-feature-branch-control",
+            "type": "ms.vss-work-web.work-item-form-control",
+            "description": "Control for creating the feature brach",
+            "targets": [
+                "ms.vss-work-web.work-item-form"
+            ],
+            "properties": {
+                "name": "Branch feature",
+                "uri": "feature/build/index.html"
+            }
+        }
+    ]
+}
+
+
