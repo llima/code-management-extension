@@ -1,18 +1,22 @@
 {
     "manifestVersion": 1,
+    "version": "1.0.19",
     "id": "code-management",
     "publisher": "llima",
-    "version": "1.0.0",
     "name": "Code Management",
     "description": "Code management extension for Azure DevOps",
-    "public": true,
     "categories": [
         "Azure Boards"
     ],
+    "tags": [
+        "Work Item",
+        "Work Item control"
+    ],
+    "scopes": [
+        "vso.work"
+    ],
     "targets": [
-        {
-            "id": "Microsoft.VisualStudio.Services"
-        }
+        { "id": "Microsoft.VisualStudio.Services" }
     ],
     "icons": {
         "default": "azure/icon.png",
@@ -30,38 +34,6 @@
         "type": "git",
         "url": "https://github.com/llima/code-management-extension"
     },
-    "links": {
-        "support": {
-            "url": "mailto:luiz.lima@live.com"
-        }
-    },
-    "scopes": [
-        "vso.work"
-    ],
-    "tags": [
-        "Work Item",
-        "Code Management",
-        "Branch",
-        "Repo"
-    ],
-    "contributions": [
-        {
-            "id": "code-management-feature",
-            "type": "ms.vss-web.feature",
-            "description": "Enable/Disable all Code Management features",
-            "targets": [
-                "ms.vss-web.managed-features"
-            ],
-            "properties": {
-                "name": "Code Management",
-                "hostConfigurable": true,
-                "defaultState": true,
-                "hostScopes": [
-                    "project"
-                ]
-            }
-        }
-    ],
     "files": [
         {
             "path": "azure",
@@ -71,5 +43,21 @@
             "path": "feature/build",
             "addressable": true
         }
+    ],
+    "contributions": [
+        {  
+            "id": "code-management-feature-branch-control",
+            "type": "ms.vss-work-web.work-item-form-control",
+            "description": "Control for creating the feature brach",
+            "targets": [
+                "ms.vss-work-web.work-item-form"
+            ],
+            "properties": {
+                "name": "Branch feature",
+                "uri": "feature/build/index.html"
+            }
+        }
     ]
 }
+
+

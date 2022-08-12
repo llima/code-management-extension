@@ -7,6 +7,6 @@ import { SurfaceBackground, SurfaceContext } from "azure-devops-ui/Surface";
 ReactDOM.render(
   <SurfaceContext.Provider value={{ background: SurfaceBackground.neutral }}>
     <App />
-    </SurfaceContext.Provider>,
+  </SurfaceContext.Provider>,
   document.getElementById('root')
 );
