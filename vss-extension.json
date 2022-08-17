@@ -1,6 +1,6 @@
 {
     "manifestVersion": 1,
-    "version": "1.0.19",
+    "version": "1.0.26",
     "id": "code-management",
     "publisher": "llima",
     "name": "Code Management",
@@ -13,7 +13,9 @@
         "Work Item control"
     ],
     "scopes": [
-        "vso.work"
+        "vso.work",
+        "vso.project",
+        "vso.code_manage"
     ],
     "targets": [
         { "id": "Microsoft.VisualStudio.Services" }
