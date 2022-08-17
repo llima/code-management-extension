@@ -13,7 +13,9 @@
         "Work Item control"
     ],
     "scopes": [
-        "vso.work"
+        "vso.work",
+        "vso.project",
+        "vso.code_manage"
     ],
     "targets": [
         { "id": "Microsoft.VisualStudio.Services" }

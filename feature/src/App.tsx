@@ -5,6 +5,8 @@ import {
   WorkItemTrackingServiceIds
 } from "azure-devops-extension-api/WorkItemTracking";
 import { ZeroData, ZeroDataActionType } from "azure-devops-ui/ZeroData";
+import { CreateFeatureBranchAsync, GetRepositoriesAsync } from './services/repository';
+import { GitRepository } from 'azure-devops-extension-api/Git';
 
 
 interface IAppState {
@@ -12,6 +14,8 @@ interface IAppState {
 }
 
 class App extends React.Component<{}, IAppState>  {
+
+  repositories: GitRepository[] = [];
 
   workItemFormService = DevOps.getService<IWorkItemFormService>(
     WorkItemTrackingServiceIds.WorkItemFormService
@@ -22,12 +26,22 @@ class App extends React.Component<{}, IAppState>  {
   }
 
   componentDidMount() {
-    DevOps.init();
+    DevOps.init();    
+  }
+
+  async createBranch() {
+    console.log('Create Repos');
+
+    this.repositories = await GetRepositoriesAsync();
+    console.log(this.repositories);
+
+    await CreateFeatureBranchAsync('Eleven.Tools.K8S', 'develop', 'ft#5555');
   }
 
   render(): JSX.Element {
     return (
-      <div>
+      <div>       
+                
         <ZeroData
           primaryText="This is the primary text"
           secondaryText={
@@ -48,8 +62,10 @@ class App extends React.Component<{}, IAppState>  {
           imageAltText="Bars"
           actionText="Button"
           actionType={ZeroDataActionType.ctaButton}
-          onActionClick={(event, item) =>
-            alert("Hey, you clicked the button for " + item!.primaryText)
+          onActionClick={(event, item) => {
+              this.createBranch();
+              alert("Hey, you clicked the button for " + item!.primaryText)
+            }
           }
         />
       </div>
