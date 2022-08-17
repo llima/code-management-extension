@@ -60,7 +60,7 @@ class App extends React.Component<{}, IAppState>  {
             </span>
           }
           imageAltText="Bars"
-          actionText="Button"
+          actionText="Create Branch"
           actionType={ZeroDataActionType.ctaButton}
           onActionClick={(event, item) => {
               this.createBranch();
