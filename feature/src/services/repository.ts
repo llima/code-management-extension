@@ -29,12 +29,13 @@ export async function CreateFeatureBranchAsync(
     const currentProject = await projectService.getProject();
     var repository = await client.getRepository(repositoryId, currentProject?.name);
 
-    var branch = await client.getBranch(repository.id, basedBranchName, currentProject?.name);    
+    var branch = await client.getBranch(repository.id, `heads/${basedBranchName}`, currentProject?.name);
 
     var gitRefUpdate = {} as GitRefUpdate;
     gitRefUpdate.name = `refs/heads/feature/${branchName}`;
     gitRefUpdate.oldObjectId = "0000000000000000000000000000000000000000";
     gitRefUpdate.newObjectId = branch.commit.commitId;
+    gitRefUpdate.isLocked = false;
 
     return await client.updateRef(gitRefUpdate, repository.id, basedBranchName, currentProject?.name);
   }
