@@ -2,7 +2,12 @@ import * as DevOps from "azure-devops-extension-sdk";
 import { IProjectPageService } from "azure-devops-extension-api";
 
 import { getClient } from "azure-devops-extension-api";
-import { GitRepository, GitRefUpdate, GitRestClient, GitRef } from "azure-devops-extension-api/Git";
+import {
+  GitRepository,
+  GitRefUpdate,
+  GitRestClient,
+  GitRefUpdateResult,
+} from "azure-devops-extension-api/Git";
 
 const client: GitRestClient = getClient(GitRestClient);
 
@@ -11,31 +16,36 @@ export async function GetRepositoriesAsync(): Promise<GitRepository[]> {
     "ms.vss-tfs-web.tfs-page-data-service"
   );
   const currentProject = await projectService.getProject();
+  const repositories = await client.getRepositories(currentProject?.name);
 
-  var repositories = await client.getRepositories(currentProject?.name);
   return repositories;
 }
 
 export async function CreateFeatureBranchAsync(
-    repositoryId: string,
-    basedBranchName: string,
-    branchName: string
-  ): Promise<GitRef> {
-    
-    const projectService = await DevOps.getService<IProjectPageService>(
-      "ms.vss-tfs-web.tfs-page-data-service"
-    );
-    
-    const currentProject = await projectService.getProject();
-    var repository = await client.getRepository(repositoryId, currentProject?.name);
+  repositoryId: string,
+  basedBranchName: string,
+  branchName: string
+): Promise<GitRefUpdateResult[]> {
+  const projectService = await DevOps.getService<IProjectPageService>(
+    "ms.vss-tfs-web.tfs-page-data-service"
+  );
 
-    var branch = await client.getBranch(repository.id, `heads/${basedBranchName}`, currentProject?.name);
+  const currentProject = await projectService.getProject();
+  const branch = await client.getBranch(
+    repositoryId,
+    `heads/${basedBranchName}`,
+    currentProject?.name
+  );
 
-    var gitRefUpdate = {} as GitRefUpdate;
-    gitRefUpdate.name = `refs/heads/feature/${branchName}`;
-    gitRefUpdate.oldObjectId = "0000000000000000000000000000000000000000";
-    gitRefUpdate.newObjectId = branch.commit.commitId;
-    gitRefUpdate.isLocked = false;
+  let gitRefUpdate = {} as GitRefUpdate;
+  gitRefUpdate.name = `refs/heads/feature/${branchName}`;
+  gitRefUpdate.oldObjectId = "0000000000000000000000000000000000000000";
+  gitRefUpdate.newObjectId = branch.commit.commitId;  
 
-    return await client.updateRef(gitRefUpdate, repository.id, basedBranchName, currentProject?.name);
-  }
+  let gitRefUpdates: GitRefUpdate[] = [gitRefUpdate];
+  return await client.updateRefs(
+    gitRefUpdates,
+    repositoryId,
+    currentProject?.name
+  );
+}
