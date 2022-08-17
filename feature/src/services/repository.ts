@@ -31,11 +31,7 @@ export async function CreateFeatureBranchAsync(
   );
 
   const currentProject = await projectService.getProject();
-  const branch = await client.getBranch(
-    repositoryId,
-    `heads/${basedBranchName}`,
-    currentProject?.name
-  );
+  const branch = await client.getBranch( repositoryId, `${basedBranchName}`, currentProject?.name);
 
   let gitRefUpdate = {} as GitRefUpdate;
   gitRefUpdate.name = `refs/heads/feature/${branchName}`;
