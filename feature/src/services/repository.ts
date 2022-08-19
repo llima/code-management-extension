@@ -21,27 +21,20 @@ export async function GetRepositoriesAsync(): Promise<GitRepository[]> {
   return repositories;
 }
 
-export async function CreateFeatureBranchAsync(
-  repositoryId: string,
-  basedBranchName: string,
-  branchName: string
-): Promise<GitRefUpdateResult[]> {
+export async function CreateFeatureBranchAsync(repositoryId: string, basedBranchName: string, branchName: string): Promise<GitRefUpdateResult[]> {
+
   const projectService = await DevOps.getService<IProjectPageService>(
     "ms.vss-tfs-web.tfs-page-data-service"
   );
 
   const currentProject = await projectService.getProject();
-  const branch = await client.getBranch( repositoryId, `${basedBranchName}`, currentProject?.name);
+  const branch = await client.getBranch(repositoryId, `${basedBranchName}`, currentProject?.name);
 
   let gitRefUpdate = {} as GitRefUpdate;
   gitRefUpdate.name = `refs/heads/feature/${branchName}`;
   gitRefUpdate.oldObjectId = "0000000000000000000000000000000000000000";
-  gitRefUpdate.newObjectId = branch.commit.commitId;  
+  gitRefUpdate.newObjectId = branch.commit.commitId;
 
   let gitRefUpdates: GitRefUpdate[] = [gitRefUpdate];
-  return await client.updateRefs(
-    gitRefUpdates,
-    repositoryId,
-    currentProject?.name
-  );
+  return await client.updateRefs(gitRefUpdates, repositoryId, currentProject?.name);
 }
