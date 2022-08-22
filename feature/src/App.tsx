@@ -17,6 +17,7 @@ import { IListBoxItem } from 'azure-devops-ui/ListBox';
 import { Icon } from 'azure-devops-ui/Icon';
 
 import { CreateFeatureBranchAsync, GetRepositoriesAsync } from './services/repository';
+import { CreateBuildDefinitionAsync, RunBuildAsync } from './services/pipeline';
 
 interface IAppState {
   repository: string;
@@ -69,6 +70,21 @@ class App extends React.Component<{}, IAppState>  {
   async create() {
     if (this.state.repository) {
       await CreateFeatureBranchAsync(this.state.repository, 'develop', 'ft#5555');
+
+      var features = ["feature/ft#001", "feature/ft#002"];
+      var user = DevOps.getUser();
+      var PAT = DevOps.getConfiguration().witInputs["PATField"];
+
+      var buildDef = await CreateBuildDefinitionAsync({
+        repositoryId: this.state.repository,
+        basedBranch: 'develop',
+        releaseBranch: 'release/rc#2525',
+        mergeBranches: features,
+        user: user,
+        PAT: PAT
+      });
+      await RunBuildAsync(buildDef.id);
+
       this.isDialogOpen.value = false;
     }
   }

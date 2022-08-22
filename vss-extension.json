@@ -44,6 +44,9 @@
         {
             "path": "feature/build",
             "addressable": true
+        },
+        {
+            "path": "tasks/release-merge/build"
         }
     ],
     "contributions": [
@@ -57,7 +60,29 @@
             "properties": {
                 "name": "Branch feature",
                 "uri": "feature/build/index.html",
-                "height": 180
+                "height": 180,
+                "inputs": [
+                    {
+                        "id": "PATField",
+                        "name": "Personal Access Token",
+                        "description": "Token used to run Git commands.",
+                        "type": "WorkItemField",
+                        "validation": {
+                            "dataType": "String",
+                            "isRequired": true
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "id": "code-management-release-merge-task",
+            "type": "ms.vss-distributed-task.task",
+            "targets": [
+                "ms.vss-distributed-task.tasks"
+            ],
+            "properties": {
+                "name": "tasks/release-merge/build"
             }
         }
     ]
