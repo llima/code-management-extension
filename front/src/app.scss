@@ -17,28 +17,3 @@ textarea {
   font-family: inherit;
   font-size: inherit;
 }
-
-.branch {
-  &--content {
-    display: flex;
-    flex-grow: 1;
-    flex-direction: column;
-    padding: 4px;
-  }
-
-  &--group {
-    margin-bottom: 20px;
-
-    &-label {
-      display: block;
-      padding: 5px 0;
-      font-size: $fontSizeML;
-      font-weight: $fontWeightSemiBold;
-    }
-  }
-
-  &--add-button {
-    text-align: right;
-  }
-
-}

@@ -1,6 +1,6 @@
 {
     "manifestVersion": 1,
-    "version": "1.0.45",
+    "version": "1.0.66",
     "id": "code-management",
     "publisher": "llima",
     "name": "Code Management",
@@ -13,9 +13,13 @@
         "Work Item control"
     ],
     "scopes": [
+        "vso.settings",
+        "vso.profile",
+        "vso.project",
         "vso.work",
-        "vso.project",  
-        "vso.code_manage"
+        "vso.work_write",
+        "vso.code_manage",
+        "vso.build_execute"
     ],
     "targets": [
         { "id": "Microsoft.VisualStudio.Services" }
@@ -42,7 +46,7 @@
             "addressable": true
         },
         {
-            "path": "feature/build",
+            "path": "front/build",
             "addressable": true
         },
         {
@@ -58,15 +62,25 @@
                 "ms.vss-work-web.work-item-form"
             ],
             "properties": {
-                "name": "Branch feature",
-                "uri": "feature/build/index.html",
+                "name": "Branch creator",
+                "uri": "fron/build/index.html",
                 "height": 180,
                 "inputs": [
                     {
                         "id": "PATField",
                         "name": "Personal Access Token",
                         "description": "Token used to run Git commands.",
-                        "type": "WorkItemField",
+                        "type": "string",
+                        "validation": {
+                            "dataType": "String",
+                            "isRequired": true
+                        }
+                    },
+                    {
+                        "id": "TypeField",
+                        "name": "Branch Type (Feature, Release or Hotfix)",
+                        "description": "Type used to branch create.",
+                        "type": "string",
                         "validation": {
                             "dataType": "String",
                             "isRequired": true
