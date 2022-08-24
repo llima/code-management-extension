@@ -32,7 +32,7 @@ export class BranchService implements IBranchService {
         const manager = await this.getManager();
 
         try {
-            return manager.getDocuments(await this._getCollection(), {
+            return await manager.getDocuments(await this._getCollection(), {
                 defaultValue: []
             });
         } catch {
@@ -44,9 +44,7 @@ export class BranchService implements IBranchService {
         const manager = await this.getManager();
 
         try {
-            return manager.getDocument(await this._getCollection(), id, {
-                defaultValue: null
-            });
+            return await manager.getDocument(await this._getCollection(), id);
         } catch {
             return null;
         }

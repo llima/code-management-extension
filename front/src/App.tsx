@@ -4,24 +4,28 @@ import * as DevOps from "azure-devops-extension-sdk";
 import './app.scss';
 import Feature from './components/feature/feature-field';
 
-class App extends React.Component<{}, {}>  {
+interface IAppState {
+  type: string;
+}
 
-  private type: string = "";
+class App extends React.Component<{}, IAppState>  {
 
   constructor(props: {}) {
     super(props);
 
-    DevOps.init();
-    
-    this.type = (DevOps.getConfiguration().witInputs["TypeField"] ?? "feature").toLowerCase();
+    this.state = { type: "feature" }
+
+    DevOps.init().then(() => {
+      this.setState({ type: (DevOps.getConfiguration().witInputs["TypeField"] ?? "feature").toLowerCase() });
+    });
   }
 
   render() {
-
-    switch (this.type) {
+    const { type } = this.state;
+    switch (type) {
       case "feature":
         return (<Feature />);
-      case "hotfix":
+      case "hotfix ->":
         return (<Feature />);
       case "release":
         return (<Feature />);

@@ -1,7 +1,11 @@
+import { IUserContext } from "azure-devops-extension-sdk";
 
 export interface IBranch {
-    workItemId: string;
-    path: string;
-    name: string;
-    repository: string;
+    id?: string;
+    type?: string;
+    name?: string;
+    repository?: string;
+    repositoryUrl?: string;
+    url?: string;
+    user?: IUserContext;
 }

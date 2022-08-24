@@ -1,6 +1,6 @@
 {
     "manifestVersion": 1,
-    "version": "1.0.66",
+    "version": "1.0.98",
     "id": "code-management",
     "publisher": "llima",
     "name": "Code Management",
@@ -63,7 +63,7 @@
             ],
             "properties": {
                 "name": "Branch creator",
-                "uri": "fron/build/index.html",
+                "uri": "front/build/index.html",
                 "height": 180,
                 "inputs": [
                     {

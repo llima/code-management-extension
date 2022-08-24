@@ -22,4 +22,21 @@
   &--add-button {
     text-align: right;
   }
+ 
+  &--loading {
+    margin-top: 60px;
+  }
+
+  &--panel
+  {
+    margin-top: 10px;
+    padding: 10px;
+    background: $neutral-4
+  }
+
+  &--alert
+  {
+    margin-top: 10px;
+  }
+
 }
