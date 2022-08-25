@@ -3,6 +3,7 @@ import * as DevOps from "azure-devops-extension-sdk";
 
 import './app.scss';
 import Feature from './components/feature/feature-field';
+import Hotfix from './components/hotfix/hotfix-field';
 
 interface IAppState {
   type: string;
@@ -25,8 +26,8 @@ class App extends React.Component<{}, IAppState>  {
     switch (type) {
       case "feature":
         return (<Feature />);
-      case "hotfix ->":
-        return (<Feature />);
+      case "hotfix":
+        return (<Hotfix />);
       case "release":
         return (<Feature />);
       default:

@@ -6,7 +6,7 @@ import {
   WorkItemTrackingServiceIds
 } from "azure-devops-extension-api/WorkItemTracking";
 
-import './feature-field.scss';
+import './hotfix-field.scss';
 
 import { Card } from "azure-devops-ui/Card";
 import { Button } from "azure-devops-ui/Button";
@@ -23,12 +23,12 @@ import { VssPersona } from "azure-devops-ui/VssPersona";
 import { MessageCard, MessageCardSeverity } from "azure-devops-ui/MessageCard";
 
 
-interface IFeatureState {
+interface IHotfixState {
   viewType: number;
   currentBranch: IBranch;
 }
 
-class Feature extends React.Component<{}, IFeatureState>  {
+class Hotfix extends React.Component<{}, IHotfixState>  {
 
   workItemFormService = DevOps.getService<IWorkItemFormService>(WorkItemTrackingServiceIds.WorkItemFormService);
   branchService = Services.getService<IBranchService>(BranchServiceId);
@@ -58,13 +58,13 @@ class Feature extends React.Component<{}, IFeatureState>  {
         this.repositories.push({ id: element.name, text: element.name, iconProps: { iconName: "GitLogo", style: { color: "#f05133" } } })
       });
 
-      var name = `ft#${id}-${Transform(this.currentWorkItem["System.Title"].toString())}`;
+      var name = `hf#${id}-${Transform(this.currentWorkItem["System.Title"].toString())}`;
       var branch = await this.branchService.getById(id);
       var view = 3;
 
       if (branch == null) {
         var user = DevOps.getUser();
-        branch = { id: id, name: name, type: "feature", user: user }
+        branch = { id: id, name: name, type: "hotfix", user: user }
         view = 1
       };
       this.setState({ currentBranch: branch, viewType: view })
@@ -80,7 +80,7 @@ class Feature extends React.Component<{}, IFeatureState>  {
     var gitRepo = await CreateBranchAsync(currentBranch);
 
     if (gitRepo != null) {
-      currentBranch.url = `${gitRepo.webUrl}?version=GBfeature/${escape(currentBranch.name ?? "")}`;
+      currentBranch.url = `${gitRepo.webUrl}?version=GBhotfix/${escape(currentBranch.name ?? "")}`;
       currentBranch.repositoryUrl = gitRepo.webUrl;
       await this.branchService.save(currentBranch);
     }
@@ -103,7 +103,7 @@ class Feature extends React.Component<{}, IFeatureState>  {
     switch (viewType) {
       case 0://LOADING
         return (
-          <div className="feature--loading">
+          <div className="hotfix--loading">
             <Spinner label="loading..." />
           </div>)
       case 1: // NO DATA
@@ -118,9 +118,9 @@ class Feature extends React.Component<{}, IFeatureState>  {
           </Card>
         </div>);
       case 2: // NEW ITEM
-        return (<div className="feature--content">
-          <div className="feature--group">
-            <label className="feature--group-label">
+        return (<div className="hotfix--content">
+          <div className="hotfix--group">
+            <label className="hotfix--group-label">
               Repository *
             </label>
             <Dropdown
@@ -135,17 +135,17 @@ class Feature extends React.Component<{}, IFeatureState>  {
               }}
             />
           </div>
-          <div className="feature--group">
+          <div className="hotfix--group">
             <span className="fontSize font-size secondary-text flex-row flex-center text-ellipsis">
               {Icon({
                 className: "icon-margin",
                 iconName: "OpenSource",
-                key: "feature-name",
+                key: "hotfix-name",
               })}
-              feature/{currentBranch.name}
+              hotfix/{currentBranch.name}
             </span>
           </div>
-          <div className="feature--add-button">
+          <div className="hotfix--add-button">
               <Button
                 text="Cancel"
                 onClick={() => this.setState({ viewType: 1 })}
@@ -160,7 +160,7 @@ class Feature extends React.Component<{}, IFeatureState>  {
         </div>);
       case 3: // LOADED
         return (<div>
-          <div className='feature--panel'>
+          <div className='hotfix--panel'>
             <span className="flex-row scroll-hidden">
               {Icon({
                 className: "icon-margin",
@@ -206,7 +206,7 @@ class Feature extends React.Component<{}, IFeatureState>  {
               </Link>
             </span>
           </div>
-          <div className="feature--add-button feature--alert">
+          <div className="hotfix--add-button hotfix--alert">
             <Button
               text="Delete"
               danger={true}
@@ -216,7 +216,7 @@ class Feature extends React.Component<{}, IFeatureState>  {
         </div>);
       case 4: // NO SAVE
         return (<MessageCard
-          className="flex-self-stretch feature--alert"
+          className="flex-self-stretch hotfix--alert"
           severity={MessageCardSeverity.Warning}
         >
           To create a branch, it is necessary to save the tem to get the Id.
@@ -234,7 +234,7 @@ class Feature extends React.Component<{}, IFeatureState>  {
                 onClick: () => this.setState({ viewType: 3 })
               }
             ]}
-            className="flex-self-stretch feature--alert"
+            className="flex-self-stretch hotfix--alert"
             severity={MessageCardSeverity.Error}
           >
             Are you sure?
@@ -244,5 +244,5 @@ class Feature extends React.Component<{}, IFeatureState>  {
   }
 }
 
-export default Feature;
+export default Hotfix;
 
