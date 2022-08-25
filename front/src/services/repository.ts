@@ -5,7 +5,7 @@ import { getClient } from "azure-devops-extension-api";
 import {
   GitRepository,
   GitRefUpdate,
-  GitRestClient
+  GitRestClient,
 } from "azure-devops-extension-api/Git";
 import { IBranch } from "../model/branch";
 
@@ -15,24 +15,28 @@ export async function GetRepositoriesAsync(): Promise<GitRepository[]> {
   const projectService = await DevOps.getService<IProjectPageService>(
     "ms.vss-tfs-web.tfs-page-data-service"
   );
-  
+
   const currentProject = await projectService.getProject();
   const repositories = await client.getRepositories(currentProject?.name);
 
   return repositories;
 }
 
-export async function CreateBranchAsync(branch: IBranch): Promise<GitRepository | null> {
-
-  if (!branch.repository)
-    return null;
+export async function CreateBranchAsync(
+  branch: IBranch
+): Promise<GitRepository | null> {
+  if (!branch.repository) return null;
 
   const projectService = await DevOps.getService<IProjectPageService>(
     "ms.vss-tfs-web.tfs-page-data-service"
   );
 
   const currentProject = await projectService.getProject();
-  const gitBranch = await client.getBranch(branch.repository, `develop`, currentProject?.name);
+  const gitBranch = await client.getBranch(
+    branch.repository,
+    `develop`,
+    currentProject?.name
+  );
 
   let gitRefUpdate = {} as GitRefUpdate;
   gitRefUpdate.name = `refs/heads/${branch.type}/${branch.name}`;
@@ -40,7 +44,40 @@ export async function CreateBranchAsync(branch: IBranch): Promise<GitRepository 
   gitRefUpdate.newObjectId = gitBranch.commit.commitId;
 
   let gitRefUpdates: GitRefUpdate[] = [gitRefUpdate];
-  await client.updateRefs(gitRefUpdates, branch.repository, currentProject?.name);
+  await client.updateRefs(
+    gitRefUpdates,
+    branch.repository,
+    currentProject?.name
+  );
 
   return client.getRepository(branch.repository, currentProject?.name);
+}
+
+export async function DeleteBranchAsync(branch: IBranch): Promise<void> {
+  const projectService = await DevOps.getService<IProjectPageService>(
+    "ms.vss-tfs-web.tfs-page-data-service"
+  );
+
+  if (branch.repository && branch.name) {
+    const currentProject = await projectService.getProject();
+    const gitBranch = await client.getBranch(
+      branch.repository,
+      branch.name,
+      currentProject?.name
+    );
+
+    if (gitBranch) {
+      let gitRefUpdate = {} as GitRefUpdate;
+      gitRefUpdate.name = `refs/heads/${branch.type}/${branch.name}`;
+      gitRefUpdate.oldObjectId = gitBranch.commit.commitId;
+      gitRefUpdate.newObjectId = "0000000000000000000000000000000000000000";
+
+      let gitRefUpdates: GitRefUpdate[] = [gitRefUpdate];
+      await client.updateRefs(
+        gitRefUpdates,
+        branch.repository,
+        currentProject?.name
+      );
+    }
+  }
 }

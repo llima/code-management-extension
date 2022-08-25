@@ -1,7 +1,7 @@
 import tl = require("azure-pipelines-task-lib/task");
 import path = require("path");
 import shell = require("shelljs");
-
+import { IMergeBranch } from "./model/release";
 
 function makeGitUrl(url: string, username: string, pass: string): string {
   const type = username && pass ? 1 : !username && pass ? 2 : 0;
@@ -28,7 +28,6 @@ async function main(): Promise<void> {
   try {
     tl.setResourcePath(path.join(__dirname, "task.json"));
 
-    const sourceRepository = tl.getPathInput("sourceRepository", true) ?? "";
     const releaseBranch = tl.getPathInput("releaseBranch", true) ?? "";
     const basedBranch = tl.getPathInput("basedBranch", true) ?? "develop";
     const mergeBranches = tl.getPathInput("mergeBranches", true) ?? "";
@@ -37,30 +36,42 @@ async function main(): Promise<void> {
     const usermail = tl.getVariable("code_management_usermail") ?? "";
     const PAT = tl.getVariable("code_management_pat") ?? "";
 
-    const workingDirectory = tl.getVariable("System.DefaultWorkingDirectory");
-    const sourceFolder = "CODE-MANAGEMENT-REPOS";
+    const sourceFolder = "CODE-MANAGEMENT-RELEASE-REPOS";
 
-    const sourceGitUrl = makeGitUrl(sourceRepository, username, PAT);
-    shell.exec(`git clone ${sourceGitUrl} ${sourceFolder}`);
+    const data = JSON.parse(mergeBranches) as IMergeBranch[];
 
-    shell.cd(sourceFolder);
+    const merges = Array.from(
+      data.reduce((a, { repositoryId, ...rest }) => {
+        return a.set(repositoryId, [rest].concat(a.get(repositoryId) || []));
+      }, new Map())
+    ).map(([repositoryId, children]) => ({ repositoryId, children }));
 
-    shell.exec(`git checkout ${basedBranch}`);
-    shell.exec(`git checkout -b ${releaseBranch}`);
+    for (let i = 0; i < merges.length; i++) {
+      const item = merges[i];
+      const sourceGitUrl = makeGitUrl(item.repositoryId, username, PAT);
+      shell.exec(`git clone ${sourceGitUrl} ${sourceFolder}-${i}`);
 
-    shell.exec(`git config user.email \"${usermail}\"`);
-    shell.exec(`git config user.name \"${username}\"`);
+      shell.cd(`${sourceFolder}-${i}`);
 
-    const branches = mergeBranches.split(";");
-    for (let i = 0; i < branches.length; i++) {
-        const b = branches[i];
-        
+      shell.exec(`git checkout ${basedBranch}`);
+      shell.exec(`git checkout -b ${releaseBranch}`);
+
+      shell.exec(`git config user.email \"${usermail}\"`);
+      shell.exec(`git config user.name \"${username}\"`);
+
+      const branches = item.children;
+      for (let j = 0; j < branches.length; j++) {
+        const b = branches[j].branch;
+
         shell.exec(`git fetch origin ${b}`);
         shell.exec(`git merge origin/${b}`);
-    }
+      }
+
+      //shell.exec("git commit -m \"Release merge made with Code Management Extensions!\"");
+      shell.exec(`git push origin ${releaseBranch} --force`);
     
-    //shell.exec("git commit -m \"Release merge made with Code Management Extensions!\"");
-    shell.exec(`git push origin ${releaseBranch} --force`);
+      shell.cd('..');
+    }
 
     tl.setResult(tl.TaskResult.Succeeded, "Task completed!");
   } catch (err: any) {

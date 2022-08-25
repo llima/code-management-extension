@@ -20,7 +20,7 @@ import {
   TaskAgentPoolReference,
   TaskDefinitionReference,
 } from "azure-devops-extension-api/Build";
-import { IBuildOptions } from "../model/buildOptions";
+import { IRelease } from "../model/release";
 
 const client: BuildRestClient = getClient(BuildRestClient);
 
@@ -30,7 +30,7 @@ export interface PhaseTargetScript {
 }
 
 export async function CreateBuildDefinitionAsync(
-  options: IBuildOptions
+  options: IRelease
 ): Promise<BuildDefinition> {
   const projectService = await DevOps.getService<IProjectPageService>(
     "ms.vss-tfs-web.tfs-page-data-service"
@@ -39,7 +39,7 @@ export async function CreateBuildDefinitionAsync(
 
   const repository = {} as BuildRepository;
   repository.type = "TfsGit";
-  repository.id = options.repositoryId;
+  repository.id = options.mergeBranches[0].repositoryId;
   repository.defaultBranch = "refs/heads/main";
 
   const agent = {} as AgentSpecification;
@@ -62,10 +62,9 @@ export async function CreateBuildDefinitionAsync(
   step.displayName = "Code Management Release Merge";
   step.enabled = true;
   step.inputs = {
-    sourceRepository: options.repositoryId,
     releaseBranch: options.releaseBranch,
     basedBranch: options.basedBranch,
-    mergeBranches: options.mergeBranches.join(";"),
+    mergeBranches: JSON.stringify(options.mergeBranches),
   };
 
   const phase = {} as Phase;
@@ -90,7 +89,7 @@ export async function CreateBuildDefinitionAsync(
   agentPoolQueue.name = "Azure Pipelines";
 
   const definition = {} as BuildDefinition;
-  definition.name = "CODE-MANAGEMENT-REPOS";
+  definition.name = "CODE-MANAGEMENT-RELEASE-REPOS";
   definition.type = DefinitionType.Build;
   definition.repository = repository;
   definition.process = designerProcess;
