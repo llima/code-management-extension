@@ -1,6 +1,6 @@
 {
     "manifestVersion": 1,
-    "version": "1.0.100",
+    "version": "1.0.103",
     "id": "code-management",
     "publisher": "llima",
     "name": "Code Management",
@@ -64,7 +64,7 @@
             "properties": {
                 "name": "Branch creator",
                 "uri": "front/build/index.html",
-                "height": 180,
+                "height": 300,
                 "inputs": [
                     {
                         "id": "PATField",
