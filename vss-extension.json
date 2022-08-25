@@ -1,6 +1,6 @@
 {
     "manifestVersion": 1,
-    "version": "1.0.26",
+    "version": "1.0.103",
     "id": "code-management",
     "publisher": "llima",
     "name": "Code Management",
@@ -13,9 +13,13 @@
         "Work Item control"
     ],
     "scopes": [
-        "vso.work",
+        "vso.settings",
+        "vso.profile",
         "vso.project",
-        "vso.code_manage"
+        "vso.work",
+        "vso.work_write",
+        "vso.code_manage",
+        "vso.build_execute"
     ],
     "targets": [
         { "id": "Microsoft.VisualStudio.Services" }
@@ -42,8 +46,11 @@
             "addressable": true
         },
         {
-            "path": "feature/build",
+            "path": "front/build",
             "addressable": true
+        },
+        {
+            "path": "tasks/release-merge/build"
         }
     ],
     "contributions": [
@@ -55,8 +62,41 @@
                 "ms.vss-work-web.work-item-form"
             ],
             "properties": {
-                "name": "Branch feature",
-                "uri": "feature/build/index.html"
+                "name": "Branch creator",
+                "uri": "front/build/index.html",
+                "height": 300,
+                "inputs": [
+                    {
+                        "id": "PATField",
+                        "name": "Personal Access Token",
+                        "description": "Token used to run Git commands.",
+                        "type": "string",
+                        "validation": {
+                            "dataType": "String",
+                            "isRequired": true
+                        }
+                    },
+                    {
+                        "id": "TypeField",
+                        "name": "Branch Type (Feature, Release or Hotfix)",
+                        "description": "Type used to branch create.",
+                        "type": "string",
+                        "validation": {
+                            "dataType": "String",
+                            "isRequired": true
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "id": "code-management-release-merge-task",
+            "type": "ms.vss-distributed-task.task",
+            "targets": [
+                "ms.vss-distributed-task.tasks"
+            ],
+            "properties": {
+                "name": "tasks/release-merge/build"
             }
         }
     ]
