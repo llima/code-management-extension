@@ -13,7 +13,7 @@ import { Button } from "azure-devops-ui/Button";
 import { Dropdown } from "azure-devops-ui/Dropdown";
 import { IListBoxItem } from 'azure-devops-ui/ListBox';
 import { Icon, IconSize } from 'azure-devops-ui/Icon';
-import { CreateBranchAsync, GetRepositoriesAsync } from '../../services/repository';
+import { CreateBranchAsync, DeleteBranchAsync, GetRepositoriesAsync } from '../../services/repository';
 import { Transform } from '../../services/string';
 import { Services } from '../../services/services';
 import { BranchServiceId, IBranchService } from '../../services/branch';
@@ -65,7 +65,6 @@ class Release extends React.Component<{}, IReleaseState>  {
 
     if (id != 0) {
 
-      //FAKE
       this.branchs = new ArrayItemProvider(await this.branchService.getAll());
 
       var name = `rc#${id}-${Transform(this.currentWorkItem["System.Title"].toString())}`;
@@ -102,6 +101,9 @@ class Release extends React.Component<{}, IReleaseState>  {
     const { currentBranch } = this.state;
 
     this.setState({ viewType: 0 })
+    
+    await DeleteBranchAsync(currentBranch);
+
     this.branchService.remove(currentBranch.id ?? "");
     this.init();
   }

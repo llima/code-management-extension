@@ -16,15 +16,7 @@
     },
     "minimumAgentVersion": "1.0.0",
     "instanceNameFormat": "Code Management Release Merge",
-    "inputs": [
-        {
-            "name": "sourceRepository",
-            "type": "string",
-            "label": "Source Repository",
-            "helpMarkDown": "Enter the source repository. e.g. https://github.com/Microsoft/vscode.git",
-            "defaultValue": "",
-            "required": true
-          },
+    "inputs": [        
           {
             "name": "releaseBranch",
             "type": "string",
@@ -45,7 +37,7 @@
             "name": "mergeBranches",
             "type": "string",
             "label": "Merge Branches",
-            "helpMarkDown": "Enter the name of the merge branches. e.g. feature/ft#0001;feature/ft#0002;",
+            "helpMarkDown": "Enter the name of the merge branches.",
             "defaultValue": "",
             "required": true
           }
