@@ -52,20 +52,25 @@ class Release extends React.Component<{}, IReleaseState>  {
 
   async init() {
 
-    var coisas = await (await this.workItemFormService).getWorkItemRelations();
-    console.log(coisas);
-
-    var fields = await (await this.workItemFormService).getFields();
-    console.log(fields);
-
-    this.currentWorkItem = await (await this.workItemFormService).getFieldValues(["System.Title", "System.Id", "System.WorkItemType", "System.RelatedLinks"]);
-    console.log(this.currentWorkItem);
-    
+    var workItem = await this.workItemFormService;
+    this.currentWorkItem = await workItem.getFieldValues(["System.Title", "System.Id", "System.WorkItemType"]);
     var id = this.currentWorkItem["System.Id"].toString();
 
     if (id != 0) {
 
-      this.branchs = new ArrayItemProvider(await this.branchService.getAll());
+      var branchs: IBranch[] = [];
+      var relations = await workItem.getWorkItemRelations()
+      for (const relation of relations) {
+        var relationId = relation.url.substring(relation.url.lastIndexOf('/') + 1);
+        console.log(relationId);
+        var branch = await this.branchService.getById(relationId);
+        if (branch != null) {
+          branchs.push(branch);
+        }
+      }
+      this.branchs = new ArrayItemProvider(branchs);
+
+      console.log(this.branchs);
 
       var name = `rc#${id}-${Transform(this.currentWorkItem["System.Title"].toString())}`;
       var branch = await this.branchService.getById(id);
@@ -101,7 +106,7 @@ class Release extends React.Component<{}, IReleaseState>  {
     const { currentBranch } = this.state;
 
     this.setState({ viewType: 0 })
-    
+
     await DeleteBranchAsync(currentBranch);
 
     this.branchService.remove(currentBranch.id ?? "");
@@ -143,8 +148,8 @@ class Release extends React.Component<{}, IReleaseState>  {
             <Button
               text="Cancel"
               onClick={() => this.setState({ viewType: 1 })}
-            /> 
-            <Button 
+            />
+            <Button
               text="Create"
               primary={true}
               onClick={() => this.create()}
