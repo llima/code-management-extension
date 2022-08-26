@@ -13,7 +13,7 @@ import { Button } from "azure-devops-ui/Button";
 import { Dropdown } from "azure-devops-ui/Dropdown";
 import { IListBoxItem } from 'azure-devops-ui/ListBox';
 import { Icon } from 'azure-devops-ui/Icon';
-import { CreateBranchAsync, GetRepositoriesAsync } from '../../services/repository';
+import { CreateBranchAsync, DeleteBranchAsync, GetRepositoriesAsync } from '../../services/repository';
 import { Transform } from '../../services/string';
 import { Services } from '../../services/services';
 import { BranchServiceId, IBranchService } from '../../services/branch';
@@ -92,6 +92,9 @@ class Hotfix extends React.Component<{}, IHotfixState>  {
     const { currentBranch } = this.state;
     
     this.setState({ viewType: 0 })
+
+    await DeleteBranchAsync(currentBranch);
+    
     this.branchService.remove(currentBranch.id ?? "");
     this.init();
   }
