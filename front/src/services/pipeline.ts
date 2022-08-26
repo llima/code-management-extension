@@ -21,6 +21,7 @@ import {
   TaskDefinitionReference,
 } from "azure-devops-extension-api/Build";
 import { IRelease } from "../model/release";
+import { ProjectStatus } from "../model/project-status";
 
 const client: BuildRestClient = getClient(BuildRestClient);
 
@@ -39,7 +40,7 @@ export async function CreateBuildDefinitionAsync(
 
   const repository = {} as BuildRepository;
   repository.type = "TfsGit";
-  repository.id = options.mergeBranches[0].repositoryId;
+  repository.id = options.repositoryId;
   repository.defaultBranch = "refs/heads/main";
 
   const agent = {} as AgentSpecification;
@@ -89,7 +90,7 @@ export async function CreateBuildDefinitionAsync(
   agentPoolQueue.name = "Azure Pipelines";
 
   const definition = {} as BuildDefinition;
-  definition.name = "CODE-MANAGEMENT-RELEASE-REPOS";
+  definition.name = `CODE-MANAGEMENT-RELEASE-${new Date().getTime()}`;
   definition.type = DefinitionType.Build;
   definition.repository = repository;
   definition.process = designerProcess;
@@ -101,11 +102,11 @@ export async function CreateBuildDefinitionAsync(
 
   const userName = {} as BuildDefinitionVariable;
   userName.isSecret = true;
-  userName.value = options.user.displayName;
+  userName.value = options.user?.displayName ?? "";
 
   const userMail = {} as BuildDefinitionVariable;
   userMail.isSecret = true;
-  userMail.value = options.user.name;
+  userMail.value = options.user?.name ?? "";
 
   definition.variables = {
     code_management_pat: PAT,
@@ -114,6 +115,20 @@ export async function CreateBuildDefinitionAsync(
   };
 
   return await client.createDefinition(definition, currentProject?.name ?? "");
+}
+
+export async function DeletePipelineAsync(
+  buildDefinitionId: number
+): Promise<void> {
+  const projectService = await DevOps.getService<IProjectPageService>(
+    "ms.vss-tfs-web.tfs-page-data-service"
+  );
+
+  const currentProject = await projectService.getProject();
+  return await client.deleteDefinition(
+    currentProject?.name ?? "",
+    buildDefinitionId
+  );
 }
 
 export async function RunBuildAsync(buildDefinitionId: number): Promise<Build> {
@@ -134,5 +149,3 @@ export async function RunBuildAsync(buildDefinitionId: number): Promise<Build> {
 
   throw new Error(`Can't find build definition with id - ${buildDefinitionId}`);
 }
-
-

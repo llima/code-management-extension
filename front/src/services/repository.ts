@@ -22,6 +22,15 @@ export async function GetRepositoriesAsync(): Promise<GitRepository[]> {
   return repositories;
 }
 
+export async function GetRepositoryAsync(name: string): Promise<GitRepository> {
+  const projectService = await DevOps.getService<IProjectPageService>(
+    "ms.vss-tfs-web.tfs-page-data-service"
+  );
+
+  const currentProject = await projectService.getProject();
+  return await client.getRepository(name, currentProject?.name);
+}
+
 export async function CreateBranchAsync(
   branch: IBranch
 ): Promise<GitRepository | null> {
