@@ -93,7 +93,7 @@ class Release extends React.Component<{}, IReleaseState>  {
 
     for (const b of this.branches) {
       var mergeBranch = {} as IMergeBranch;
-      mergeBranch.branch = `${currentBranch.type}/${b.name}`;
+      mergeBranch.branch = `${b.type}/${b.name}`;
       mergeBranch.repositoryId = b.repository ?? "";
 
       mergeBranches.push(mergeBranch);
@@ -104,7 +104,7 @@ class Release extends React.Component<{}, IReleaseState>  {
     var token = DevOps.getConfiguration().witInputs["PATField"].toString();
     var releaseOption = {
       repositoryId: repository.id,
-      releaseBranch: `release/${currentBranch.name}`,
+      releaseBranch: `${currentBranch.type}/${currentBranch.name}`,
       basedBranch: "main",
       mergeBranches: mergeBranches,
       user: currentBranch.user,
