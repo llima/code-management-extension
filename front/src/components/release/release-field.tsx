@@ -35,7 +35,6 @@ class Release extends React.Component<{}, IReleaseState>  {
   workItemFormService = DevOps.getService<IWorkItemFormService>(WorkItemTrackingServiceIds.WorkItemFormService);
   branchService = Services.getService<IBranchService>(BranchServiceId);
 
-  private repositories: Array<IListBoxItem<{}>> = [];
   private branchs: ArrayItemProvider<IBranch> = new ArrayItemProvider([]);
 
   private currentWorkItem: any = {};
@@ -53,17 +52,21 @@ class Release extends React.Component<{}, IReleaseState>  {
 
   async init() {
 
-    this.currentWorkItem = await (await this.workItemFormService).getFieldValues(["System.Title", "System.Id", "System.WorkItemType"]);
+    var coisas = await (await this.workItemFormService).getWorkItemRelations();
+    console.log(coisas);
+
+    var fields = await (await this.workItemFormService).getFields();
+    console.log(fields);
+
+    this.currentWorkItem = await (await this.workItemFormService).getFieldValues(["System.Title", "System.Id", "System.WorkItemType", "System.RelatedLinks"]);
+    console.log(this.currentWorkItem);
+    
     var id = this.currentWorkItem["System.Id"].toString();
 
     if (id != 0) {
 
       //FAKE
       this.branchs = new ArrayItemProvider(await this.branchService.getAll());
-
-      (await GetRepositoriesAsync()).forEach(element => {
-        this.repositories.push({ id: element.name, text: element.name, iconProps: { iconName: "GitLogo", style: { color: "#f05133" } } })
-      });
 
       var name = `rc#${id}-${Transform(this.currentWorkItem["System.Title"].toString())}`;
       var branch = await this.branchService.getById(id);
@@ -72,7 +75,7 @@ class Release extends React.Component<{}, IReleaseState>  {
       if (branch == null) {
         var user = DevOps.getUser();
         branch = { id: id, name: name, type: "release", user: user }
-        view = 1
+        view = 2
       };
       this.setState({ currentBranch: branch, viewType: view })
     }
@@ -113,46 +116,19 @@ class Release extends React.Component<{}, IReleaseState>  {
           <div className="release--loading">
             <Spinner label="loading..." />
           </div>)
-      case 1: // NO DATA
-        return (<div>
-          <Button
-            text="Create"
-            subtle={true}
-            onClick={() => this.setState({ viewType: 2 })}
-          />
-          <Card>
-            There is no branch linked to this item. Click create to link.
-          </Card>
-        </div>);
       case 2: // NEW ITEM
         return (<div className="release--content">
           <div className="release--group">
-            <label className="release--group-label">
-              Repository *
-            </label>
-            <Dropdown
-              ariaLabel="Basic"
-              placeholder="Select a repository"
-              showPrefix={true}
-              items={this.repositories}
-              onSelect={(event, item) => {
-                this.setState(prevState => ({
-                  currentBranch: { ...prevState.currentBranch, repository: item.id }
-                }))
-              }}
-            />
-          </div>
-          <div className="release--group">
-            <span className="fontSize font-size secondary-text flex-row flex-center text-ellipsis">
+            <h3 className="flex-row flex-center text-ellipsis">
               {Icon({
                 className: "icon-margin",
                 iconName: "OpenSource",
                 key: "release-name",
               })}
               release/{currentBranch.name}
-            </span>
+            </h3>
           </div>
-          <div className="release--group" style={{ display: "flex", height: "100px" }}>
+          <div className="release--group" style={{ display: "flex", height: "150px" }}>
 
             <ScrollableList
               itemProvider={this.branchs}
