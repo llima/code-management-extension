@@ -149,3 +149,38 @@ export async function RunBuildAsync(buildDefinitionId: number): Promise<Build> {
 
   throw new Error(`Can't find build definition with id - ${buildDefinitionId}`);
 }
+
+export async function GetBuildStatusAsync(
+  buildId: number
+): Promise<ProjectStatus> {
+  try {
+    const projectService = await DevOps.getService<IProjectPageService>(
+      "ms.vss-tfs-web.tfs-page-data-service"
+    );
+
+    const currentProject = await projectService.getProject();
+    const build = await client.getBuild(currentProject?.name ?? "", buildId);
+
+    if (build == null) {
+      return ProjectStatus.Succeeded;
+    }
+
+    switch (build.status) {
+      case BuildStatus.None:
+      case BuildStatus.InProgress:
+      case BuildStatus.NotStarted:
+        return ProjectStatus.Running;
+      case BuildStatus.Cancelling:
+        return ProjectStatus.Failed;
+      case BuildStatus.Completed: {
+        return build.result === BuildResult.Succeeded
+          ? ProjectStatus.Succeeded
+          : ProjectStatus.Failed;
+      }
+      default:
+        return ProjectStatus.Running;
+    }
+  } catch (error) {
+    return ProjectStatus.Succeeded;
+  }
+}

@@ -36,22 +36,25 @@ async function main(): Promise<void> {
     const usermail = tl.getVariable("code_management_usermail") ?? "";
     const PAT = tl.getVariable("code_management_pat") ?? "";
 
-    const sourceFolder = "CODE-MANAGEMENT-RELEASE-REPOS";
+    const sourceFolderTitle = "CODE-MANAGEMENT-RELEASE-REPOS";
 
     const data = JSON.parse(mergeBranches) as IMergeBranch[];
 
     const merges = Array.from(
-      data.reduce((a, { repositoryId, ...rest }) => {
-        return a.set(repositoryId, [rest].concat(a.get(repositoryId) || []));
+      data.reduce((a, { repositoryUrl, ...rest }) => {
+        return a.set(repositoryUrl, [rest].concat(a.get(repositoryUrl) || []));
       }, new Map())
-    ).map(([repositoryId, children]) => ({ repositoryId, children }));
+    ).map(([repositoryUrl, children]) => ({ repositoryUrl, children }));
 
     for (let i = 0; i < merges.length; i++) {
-      const item = merges[i];
-      const sourceGitUrl = makeGitUrl(item.repositoryId, username, PAT);
-      shell.exec(`git clone ${sourceGitUrl} ${sourceFolder}-${i}`);
 
-      shell.cd(`${sourceFolder}-${i}`);
+      const item = merges[i];
+      const sourceFolder = `${sourceFolderTitle}-${i}`;
+      const sourceGitUrl = makeGitUrl(item.repositoryUrl, username, PAT);
+      shell.exec(`git clone ${sourceGitUrl} ${sourceFolder}`);
+
+      //CHANGE DIRECTORY
+      shell.cd(`${sourceFolder}`);
 
       shell.exec(`git checkout ${basedBranch}`);
       shell.exec(`git checkout -b ${releaseBranch}`);
@@ -64,7 +67,7 @@ async function main(): Promise<void> {
         const b = branches[j].branch;
 
         shell.exec(`git fetch origin ${b}`);
-        shell.exec(`git merge origin/${b}`);
+        shell.exec(`git merge origin/${b} --no-edit`);
       }
 
       //shell.exec("git commit -m \"Release merge made with Code Management Extensions!\"");

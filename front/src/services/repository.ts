@@ -71,7 +71,7 @@ export async function DeleteBranchAsync(branch: IBranch): Promise<void> {
     const currentProject = await projectService.getProject();
     const gitBranch = await client.getBranch(
       branch.repository,
-      branch.name,
+      `${branch.type}/${branch.name}`,
       currentProject?.name
     );
 

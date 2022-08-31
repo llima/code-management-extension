@@ -10,6 +10,6 @@ export interface IRelease {
 }
 
 export interface IMergeBranch {
-    repositoryId: string;
+    repositoryUrl: string;
     branch: string;
 }

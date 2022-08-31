@@ -1,4 +1,4 @@
 export interface IMergeBranch {
-    repositoryId: string;
+    repositoryUrl: string;
     branch: string;
 }
