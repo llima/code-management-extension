@@ -20,7 +20,8 @@ import {
   TaskAgentPoolReference,
   TaskDefinitionReference,
 } from "azure-devops-extension-api/Build";
-import { IRelease } from "../model/release";
+
+import { IGitRelease } from "../model/git-release";
 import { ProjectStatus } from "../model/project-status";
 
 const client: BuildRestClient = getClient(BuildRestClient);
@@ -32,7 +33,7 @@ export interface PhaseTargetScript {
 
 export async function CreateBuildDefinitionAsync(
   repositoryName: string,
-  options: IRelease
+  options: IGitRelease
 ): Promise<BuildDefinition> {
   const projectService = await DevOps.getService<IProjectPageService>(
     "ms.vss-tfs-web.tfs-page-data-service"

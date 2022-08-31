@@ -1,17 +1,19 @@
 import { IUserContext } from "azure-devops-extension-sdk";
+import { ProjectStatus } from "./project-status";
 
-export interface IRelease {    
-    repositoryId: string;
-    repositoryUrl: string;
-    releaseBranch: string;
-    basedBranch: string;
-    mergeBranches: IMergeBranch[];
+export interface IRelease {
+    id?: string;
+    name?: string;
     user?: IUserContext;
-    PAT: string;
+    branches: IBranchRelease[];
 }
 
-export interface IMergeBranch {
-    repositoryId: string;
-    repositoryUrl: string;
-    branch: string;
+export interface IBranchRelease {
+    name?: string;
+    repository?: string;
+    repositoryUrl?: string;
+    url?: string;
+    projectStatus?: ProjectStatus;
+    buildDefinitionId?: number;
+    buildRunId?: number;
 }

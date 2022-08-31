@@ -8,6 +8,5 @@ export interface IBranch {
     repositoryUrl?: string;
     url?: string;
     user?: IUserContext;
-    buildDefinitionId?: number;
-    buildRunId?: number;
 }
+

@@ -67,6 +67,7 @@ class Hotfix extends React.Component<{}, IHotfixState>  {
         branch = { id: id, name: name, type: "hotfix", user: user }
         view = 1
       };
+      
       this.setState({ currentBranch: branch, viewType: view })
     }
     else {
