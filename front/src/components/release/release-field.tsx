@@ -13,7 +13,6 @@ import { Button } from "azure-devops-ui/Button";
 import { Dropdown } from "azure-devops-ui/Dropdown";
 import { IListBoxItem } from 'azure-devops-ui/ListBox';
 import { Icon, IconSize } from 'azure-devops-ui/Icon';
-import { CreateBranchAsync, DeleteBranchAsync, GetRepositoriesAsync } from '../../services/repository';
 import { Transform } from '../../services/string';
 import { Services } from '../../services/services';
 import { BranchServiceId, IBranchService } from '../../services/branch';
@@ -23,6 +22,10 @@ import { VssPersona } from "azure-devops-ui/VssPersona";
 import { MessageCard, MessageCardSeverity } from "azure-devops-ui/MessageCard";
 import { IListItemDetails, ListItem, ScrollableList } from 'azure-devops-ui/List';
 import { ArrayItemProvider } from 'azure-devops-ui/Utilities/Provider';
+import { CreateBuildDefinitionAsync, DeletePipelineAsync, GetBuildStatusAsync, RunBuildAsync } from '../../services/pipeline';
+import { IMergeBranch } from '../../model/release';
+import { DeleteBranchAsync, GetRepositoryAsync } from '../../services/repository';
+import { ProjectStatus } from '../../model/project-status';
 
 
 interface IReleaseState {
@@ -36,8 +39,10 @@ class Release extends React.Component<{}, IReleaseState>  {
   branchService = Services.getService<IBranchService>(BranchServiceId);
 
   private items: ArrayItemProvider<IBranch> = new ArrayItemProvider([]);
-  private branchs: IBranch[] = [];
+  private branches: IBranch[] = [];
   private currentWorkItem: any = {};
+
+  private intervalStatus: any;
 
   constructor(props: {}) {
     super(props);
@@ -48,7 +53,7 @@ class Release extends React.Component<{}, IReleaseState>  {
     }
 
     this.init();
-  }
+  }  
 
   async init() {
 
@@ -63,10 +68,10 @@ class Release extends React.Component<{}, IReleaseState>  {
         var relationId = relation.url.substring(relation.url.lastIndexOf('/') + 1);
         var branch = await this.branchService.getById(relationId);
         if (branch != null) {
-          this.branchs.push(branch);
+          this.branches.push(branch);
         }
       }
-      this.items = new ArrayItemProvider(this.branchs);
+      this.items = new ArrayItemProvider(this.branches);
 
       var name = `rc#${id}-${Transform(this.currentWorkItem["System.Title"].toString())}`;
       var branch = await this.branchService.getById(id);
@@ -77,7 +82,14 @@ class Release extends React.Component<{}, IReleaseState>  {
         branch = { id: id, name: name, type: "release", user: user }
         view = 1
       };
-      this.setState({ currentBranch: branch, viewType: view })
+      
+      if (branch.buildRunId) {
+        view = 6;
+      }
+      
+      this.setState({ currentBranch: branch, viewType: view });
+
+      await this.getBuildStatus(this);
     }
     else {
       this.setState({ viewType: 4 })
@@ -87,15 +99,45 @@ class Release extends React.Component<{}, IReleaseState>  {
   async create() {
     const { currentBranch } = this.state;
 
-    var gitRepo = await CreateBranchAsync(currentBranch);
+    var mergeBranches: IMergeBranch[] = [];
 
-    if (gitRepo != null) {
-      currentBranch.url = `${gitRepo.webUrl}?version=GBrelease/${escape(currentBranch.name ?? "")}`;
-      currentBranch.repositoryUrl = gitRepo.webUrl;
-      await this.branchService.save(currentBranch);
+    for (const b of this.branches) {
+      var mergeBranch = {} as IMergeBranch;
+      mergeBranch.branch = `${b.type}/${b.name}`;      
+      mergeBranch.repositoryUrl = b.repositoryUrl ?? "";
+
+      mergeBranches.push(mergeBranch);
     }
 
-    this.setState({ viewType: 3 });
+    var repository = await GetRepositoryAsync(this.branches[0].repository ?? "");
+
+    var token = DevOps.getConfiguration().witInputs["PATField"].toString();
+    var releaseOption = {
+      repositoryId: repository.id,
+      releaseBranch: `${currentBranch.type}/${currentBranch.name}`,
+      basedBranch: "main",
+      mergeBranches: mergeBranches,
+      user: currentBranch.user,
+      PAT: token
+    };
+
+    var buildDef = await CreateBuildDefinitionAsync(releaseOption);
+    currentBranch.buildDefinitionId = buildDef.id;
+
+    var runBuild = await RunBuildAsync(buildDef.id);
+    currentBranch.buildRunId = runBuild.id;
+
+    currentBranch.url = `${repository.webUrl}?version=GBrelease/${escape(currentBranch.name ?? "")}`;
+    currentBranch.repositoryUrl = repository.webUrl;
+
+    await this.branchService.save(currentBranch);
+
+    this.setState({ viewType: 6 });
+
+    let that = this;
+    that.intervalStatus = setInterval(async function () {
+      await that.getBuildStatus(that);
+    }, 500);
   }
 
   async delete() {
@@ -105,6 +147,24 @@ class Release extends React.Component<{}, IReleaseState>  {
     this.branchService.remove(currentBranch.id ?? "");
 
     this.init();
+  }
+
+  async getBuildStatus(that: this) {
+    const { currentBranch } = this.state;
+
+    if (currentBranch.buildRunId) {
+      let status = await GetBuildStatusAsync(currentBranch.buildRunId);
+      if (status == ProjectStatus.Succeeded) {
+        currentBranch.buildRunId = undefined;
+
+        await DeletePipelineAsync(currentBranch.buildDefinitionId ?? 0);
+
+        await this.branchService.save(currentBranch);
+        this.setState({ viewType: 3 });
+
+        clearInterval(that.intervalStatus);
+      }
+    }
   }
 
   render() {
@@ -243,6 +303,14 @@ class Release extends React.Component<{}, IReleaseState>  {
             Are you sure?
           </MessageCard>
         );
+      case 6: //RUN BUILD
+      return (
+        <MessageCard
+          className="flex-self-stretch release--alert"
+          severity={MessageCardSeverity.Info}
+          >
+          Creating a release branch, wait please...
+        </MessageCard>);
     }
   }
 }

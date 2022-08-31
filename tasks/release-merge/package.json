@@ -1,6 +1,6 @@
 {
   "name": "code-management-merges",
-  "version": "1.0.1",
+  "version": "1.0.5",
   "description": "Code Management Extension for Azure DevOps",
   "main": "release-merge.js",
   "repository": {
