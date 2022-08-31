@@ -12,11 +12,19 @@
     "version": {
       "Major": "1",
       "Minor": "0",
-      "Patch": "5"
+      "Patch": "7"
     },
-    "minimumAgentVersion": "1.0.5",
+    "minimumAgentVersion": "1.0.7",
     "instanceNameFormat": "Code Management Release Merge",
     "inputs": [        
+          {
+            "name": "repositoryUrl",
+            "type": "string",
+            "label": "Repository Url",
+            "helpMarkDown": "Enter the name of the repository url.",
+            "defaultValue": "",
+            "required": true
+          },      
           {
             "name": "releaseBranch",
             "type": "string",

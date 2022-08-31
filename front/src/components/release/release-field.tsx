@@ -99,45 +99,66 @@ class Release extends React.Component<{}, IReleaseState>  {
   async create() {
     const { currentBranch } = this.state;
 
-    var mergeBranches: IMergeBranch[] = [];
+    const repos = Array.from(
+      this.branches.reduce((a, { repository, ...rest }) => {
+        return a.set(repository, [rest].concat(a.get(repository) || []));
+      }, new Map())
+    ).map(([repository, children]) => ({ repository, children }));
 
-    for (const b of this.branches) {
-      var mergeBranch = {} as IMergeBranch;
-      mergeBranch.branch = `${b.type}/${b.name}`;      
-      mergeBranch.repositoryUrl = b.repositoryUrl ?? "";
 
-      mergeBranches.push(mergeBranch);
+    // for (const b of this.branches) {
+    //   var mergeBranch = {} as IMergeBranch;
+    //   mergeBranch.branch = `${b.type}/${b.name}`;
+    //   mergeBranch.repositoryId = b.repository ?? "";
+    //   mergeBranch.repositoryUrl = b.repositoryUrl ?? "";
+
+    //   mergeBranches.push(mergeBranch);
+    // }
+    for (const r of repos) {
+      var mergeBranches: IMergeBranch[] = [];
+      var repository = await GetRepositoryAsync(r.repository ?? "");
+
+      for (const b of r.children) {
+        var mergeBranch = {} as IMergeBranch;
+        mergeBranch.branch = `${b.type}/${b.name}`;
+
+        mergeBranch.repositoryId = repository.id;
+        mergeBranch.repositoryUrl = repository.webUrl;
+  
+        mergeBranches.push(mergeBranch);
+      }
+
+      var token = DevOps.getConfiguration().witInputs["PATField"].toString();
+      var releaseOption = {
+        repositoryId: repository.id,
+        repositoryUrl: repository.webUrl,
+        releaseBranch: `${currentBranch.type}/${currentBranch.name}`,
+        basedBranch: "main",
+        mergeBranches: mergeBranches,
+        user: currentBranch.user,
+        PAT: token
+      };
+
+      var buildDef = await CreateBuildDefinitionAsync(repository.name, releaseOption);
+      currentBranch.buildDefinitionId = buildDef.id;
+
+      var runBuild = await RunBuildAsync(buildDef.id);
+      currentBranch.buildRunId = runBuild.id;
+
+      currentBranch.url = `${repository.webUrl}?version=GBrelease/${escape(currentBranch.name ?? "")}`;
+      currentBranch.repositoryUrl = repository.webUrl;
+
+      await this.branchService.save(currentBranch);
     }
 
-    var repository = await GetRepositoryAsync(this.branches[0].repository ?? "");
+    this.setState({ viewType: 3 });
 
-    var token = DevOps.getConfiguration().witInputs["PATField"].toString();
-    var releaseOption = {
-      repositoryId: repository.id,
-      releaseBranch: `${currentBranch.type}/${currentBranch.name}`,
-      basedBranch: "main",
-      mergeBranches: mergeBranches,
-      user: currentBranch.user,
-      PAT: token
-    };
+    //this.setState({ viewType: 6 });
 
-    var buildDef = await CreateBuildDefinitionAsync(releaseOption);
-    currentBranch.buildDefinitionId = buildDef.id;
-
-    var runBuild = await RunBuildAsync(buildDef.id);
-    currentBranch.buildRunId = runBuild.id;
-
-    currentBranch.url = `${repository.webUrl}?version=GBrelease/${escape(currentBranch.name ?? "")}`;
-    currentBranch.repositoryUrl = repository.webUrl;
-
-    await this.branchService.save(currentBranch);
-
-    this.setState({ viewType: 6 });
-
-    let that = this;
-    that.intervalStatus = setInterval(async function () {
-      await that.getBuildStatus(that);
-    }, 500);
+    // let that = this;
+    // that.intervalStatus = setInterval(async function () {
+    //   await that.getBuildStatus(that);
+    // }, 500);
   }
 
   async delete() {

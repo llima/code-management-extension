@@ -28,6 +28,7 @@ async function main(): Promise<void> {
   try {
     tl.setResourcePath(path.join(__dirname, "task.json"));
 
+    const repositoryUrl = tl.getPathInput("repositoryUrl", true) ?? "";
     const releaseBranch = tl.getPathInput("releaseBranch", true) ?? "";
     const basedBranch = tl.getPathInput("basedBranch", true) ?? "develop";
     const mergeBranches = tl.getPathInput("mergeBranches", true) ?? "";
@@ -38,43 +39,31 @@ async function main(): Promise<void> {
 
     const sourceFolderTitle = "CODE-MANAGEMENT-RELEASE-REPOS";
 
-    const data = JSON.parse(mergeBranches) as IMergeBranch[];
+    const sourceFolder = `${sourceFolderTitle}`;
+    const sourceGitUrl = makeGitUrl(repositoryUrl, username, PAT);
+    shell.exec(`git clone ${sourceGitUrl} ${sourceFolder}`);
 
-    const merges = Array.from(
-      data.reduce((a, { repositoryUrl, ...rest }) => {
-        return a.set(repositoryUrl, [rest].concat(a.get(repositoryUrl) || []));
-      }, new Map())
-    ).map(([repositoryUrl, children]) => ({ repositoryUrl, children }));
+    //CHANGE DIRECTORY
+    shell.cd(`${sourceFolder}`);
 
-    for (let i = 0; i < merges.length; i++) {
+    shell.exec(`git checkout ${basedBranch}`);
+    shell.exec(`git checkout -b ${releaseBranch}`);
 
-      const item = merges[i];
-      const sourceFolder = `${sourceFolderTitle}-${i}`;
-      const sourceGitUrl = makeGitUrl(item.repositoryUrl, username, PAT);
-      shell.exec(`git clone ${sourceGitUrl} ${sourceFolder}`);
+    shell.exec(`git config user.email \"${usermail}\"`);
+    shell.exec(`git config user.name \"${username}\"`);
 
-      //CHANGE DIRECTORY
-      shell.cd(`${sourceFolder}`);
+    const branches = JSON.parse(mergeBranches) as IMergeBranch[];
+    for (let j = 0; j < branches.length; j++) {
+      const b = branches[j].branch;
 
-      shell.exec(`git checkout ${basedBranch}`);
-      shell.exec(`git checkout -b ${releaseBranch}`);
-
-      shell.exec(`git config user.email \"${usermail}\"`);
-      shell.exec(`git config user.name \"${username}\"`);
-
-      const branches = item.children;
-      for (let j = 0; j < branches.length; j++) {
-        const b = branches[j].branch;
-
-        shell.exec(`git fetch origin ${b}`);
-        shell.exec(`git merge origin/${b} --no-edit`);
-      }
-
-      //shell.exec("git commit -m \"Release merge made with Code Management Extensions!\"");
-      shell.exec(`git push origin ${releaseBranch} --force`);
-    
-      shell.cd('..');
+      shell.exec(`git fetch origin ${b}`);
+      shell.exec(`git merge origin/${b} --no-edit`);
     }
+
+    //shell.exec("git commit -m \"Release merge made with Code Management Extensions!\"");
+    shell.exec(`git push origin ${releaseBranch} --force`);
+
+    shell.cd("..");
 
     tl.setResult(tl.TaskResult.Succeeded, "Task completed!");
   } catch (err: any) {

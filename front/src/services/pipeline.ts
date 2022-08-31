@@ -31,6 +31,7 @@ export interface PhaseTargetScript {
 }
 
 export async function CreateBuildDefinitionAsync(
+  repositoryName: string,
   options: IRelease
 ): Promise<BuildDefinition> {
   const projectService = await DevOps.getService<IProjectPageService>(
@@ -63,6 +64,7 @@ export async function CreateBuildDefinitionAsync(
   step.displayName = "Code Management Release Merge";
   step.enabled = true;
   step.inputs = {
+    repositoryUrl: options.repositoryUrl,
     releaseBranch: options.releaseBranch,
     basedBranch: options.basedBranch,
     mergeBranches: JSON.stringify(options.mergeBranches),
@@ -90,7 +92,7 @@ export async function CreateBuildDefinitionAsync(
   agentPoolQueue.name = "Azure Pipelines";
 
   const definition = {} as BuildDefinition;
-  definition.name = `CODE-MANAGEMENT-RELEASE-${new Date().getTime()}`;
+  definition.name = `CODE-MANAGEMENT-RELEASE-${repositoryName}-${new Date().getTime()}`;
   definition.type = DefinitionType.Build;
   definition.repository = repository;
   definition.process = designerProcess;

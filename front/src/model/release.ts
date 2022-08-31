@@ -2,6 +2,7 @@ import { IUserContext } from "azure-devops-extension-sdk";
 
 export interface IRelease {    
     repositoryId: string;
+    repositoryUrl: string;
     releaseBranch: string;
     basedBranch: string;
     mergeBranches: IMergeBranch[];
@@ -10,6 +11,7 @@ export interface IRelease {
 }
 
 export interface IMergeBranch {
+    repositoryId: string;
     repositoryUrl: string;
     branch: string;
 }
