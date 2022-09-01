@@ -19,7 +19,7 @@ import { Link, Spinner } from '@fluentui/react';
 import { MessageCard, MessageCardSeverity } from "azure-devops-ui/MessageCard";
 import { IListItemDetails, ListItem, ScrollableList } from 'azure-devops-ui/List';
 import { ArrayItemProvider } from 'azure-devops-ui/Utilities/Provider';
-import { CreateBuildDefinitionAsync, RunBuildAsync } from '../../services/pipeline';
+import { CreateBuildDefinitionAsync, DeletePipelineAsync, GetBuildStatusAsync, RunBuildAsync } from '../../services/pipeline';
 import { GetRepositoryAsync } from '../../services/repository';
 import { ProjectStatus } from '../../model/project-status';
 import { IBranchRelease, IRelease } from '../../model/release';
@@ -80,12 +80,30 @@ class Release extends React.Component<{}, IReleaseState>  {
 
       if (release == null) {
         var user = DevOps.getUser();
-        release = { id: id, name: name, user: user, branches: [] }
-        view = 1
+        release = { id: id, name: name, user: user, branches: [] };
+        view = 1;
       }
-      else { 
-        console.log(release) 
-        this.itemsVew = new ArrayItemProvider(release.branches);
+      else {        
+        //Check Build Status
+        let updateStatus = false;
+
+        for (const b of release.branches) {
+          if (b.projectStatus == ProjectStatus.Running) {
+            let status = await GetBuildStatusAsync(b.buildRunId ?? 0);
+            if (status == ProjectStatus.Succeeded) {
+              updateStatus = true;
+              b.projectStatus = ProjectStatus.Succeeded;
+
+              await DeletePipelineAsync(b.buildDefinitionId ?? 0);
+            }
+          }          
+        }
+
+        if (updateStatus) {
+          await this.releaseService.save(release);
+        }
+
+        this.itemsVew = new ArrayItemProvider(release.branches);        
       };
 
       this.setState({ currentRelease: release, viewType: view });
@@ -174,7 +192,7 @@ class Release extends React.Component<{}, IReleaseState>  {
     //     clearInterval(that.intervalStatus);
     //   }
     // }
-  }
+  }  
 
   render() {
 
@@ -280,16 +298,23 @@ class Release extends React.Component<{}, IReleaseState>  {
           >
             Are you sure?
           </MessageCard>
-        );
-      case 6: //RUN BUILD
-        return (
-          <MessageCard
-            className="flex-self-stretch release--alert"
-            severity={MessageCardSeverity.Info}
-          >
-            Creating a release branch, wait please...
-          </MessageCard>);
+        );      
     }
+  }
+}
+
+export function getStatusIndicator(status?: ProjectStatus): any {
+  status = status || ProjectStatus.Running;
+  
+  switch (status) {
+    case ProjectStatus.Failed:
+      return Statuses.Failed;
+    case ProjectStatus.Running:
+      return Statuses.Running;
+    case ProjectStatus.Warning:
+      return Statuses.Warning;
+    case ProjectStatus.Succeeded:
+      return Statuses.Success;
   }
 }
 
@@ -349,8 +374,8 @@ export const renderReleaseRow = (
     >
       <div className="list-example-row flex-row h-scroll-hidden">
         <Status
-                {...Statuses.Running}
-                key="success"
+                {...getStatusIndicator(item.projectStatus)}
+                key="status"
                 size={StatusSize.m}
                 className="flex-self-center"
               />
