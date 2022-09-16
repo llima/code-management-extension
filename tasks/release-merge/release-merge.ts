@@ -24,13 +24,20 @@ function makeGitUrl(url: string, username: string, pass: string): string {
   }
 }
 
+function getFixes(name: string) {
+  var a = name.split("#");
+  var b = a[1].split("-");    
+      
+  return `fixes #${b[0]}`;
+}
+
 async function main(): Promise<void> {
   try {
     tl.setResourcePath(path.join(__dirname, "task.json"));
 
     const repositoryUrl = tl.getPathInput("repositoryUrl", true) ?? "";
     const releaseBranch = tl.getPathInput("releaseBranch", true) ?? "";
-    const basedBranch = tl.getPathInput("basedBranch", true) ?? "develop";
+    const basedBranch = tl.getPathInput("basedBranch", true) ?? "main";
     const mergeBranches = tl.getPathInput("mergeBranches", true) ?? "";
 
     const username = tl.getVariable("code_management_username") ?? "";
@@ -46,8 +53,7 @@ async function main(): Promise<void> {
     //CHANGE DIRECTORY
     shell.cd(`${sourceFolder}`);
 
-    shell.exec(`git checkout ${basedBranch}`);
-    shell.exec(`git checkout -b ${releaseBranch}`);
+    shell.exec(`git checkout ${releaseBranch}`);
 
     shell.exec(`git config user.email \"${usermail}\"`);
     shell.exec(`git config user.name \"${username}\"`);
@@ -59,8 +65,10 @@ async function main(): Promise<void> {
       shell.exec(`git fetch origin ${b}`);
       shell.exec(`git merge origin/${b} --no-edit`);
     }
-
-    //shell.exec("git commit -m \"Release merge made with Code Management Extensions!\"");
+    
+    const fixes = branches.map(u => getFixes(u.branch)).join(', ');
+    
+    shell.exec(`git commit -m \"Release Done - ${fixes}\" --allow-empty`);
     shell.exec(`git push origin ${releaseBranch} --force`);
 
     shell.cd("..");

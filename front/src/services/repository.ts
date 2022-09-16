@@ -43,7 +43,7 @@ export async function CreateBranchAsync(
   const currentProject = await projectService.getProject();
   const gitBranch = await client.getBranch(
     branch.repository,
-    `develop`,
+    branch.basedOn ?? "main",
     currentProject?.name
   );
 
@@ -84,6 +84,32 @@ export async function DeleteBranchAsync(branch: IBranch): Promise<void> {
       let gitRefUpdates: GitRefUpdate[] = [gitRefUpdate];
       await client.updateRefs(
         gitRefUpdates,
+        branch.repository,
+        currentProject?.name
+      );
+    }
+  }
+}
+
+export async function UpdateRepositoryAsync(branch: IBranch): Promise<void> {
+  const projectService = await DevOps.getService<IProjectPageService>(
+    "ms.vss-tfs-web.tfs-page-data-service"
+  );
+
+  if (branch.repository && branch.name) {
+    const currentProject = await projectService.getProject();
+    const gitBranch = await client.getBranch(
+      branch.repository,
+      `${branch.type}/${branch.name}`,
+      currentProject?.name
+    );
+
+    if (gitBranch) {
+      let gitRepository = {} as GitRepository;
+      gitRepository.defaultBranch = `refs/heads/${branch.type}/${branch.name}`;
+
+      await client.updateRepository(
+        gitRepository,
         branch.repository,
         currentProject?.name
       );

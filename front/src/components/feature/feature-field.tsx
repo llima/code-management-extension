@@ -64,7 +64,7 @@ class Feature extends React.Component<{}, IFeatureState>  {
 
       if (branch == null) {
         var user = DevOps.getUser();
-        branch = { id: id, name: name, type: "feature", user: user }
+        branch = { id: id, name: name, type: "feature", user: user, basedOn: "main" }
         view = 1
       };
       this.setState({ currentBranch: branch, viewType: view })

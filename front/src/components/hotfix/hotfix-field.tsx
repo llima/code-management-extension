@@ -64,7 +64,7 @@ class Hotfix extends React.Component<{}, IHotfixState>  {
 
       if (branch == null) {
         var user = DevOps.getUser();
-        branch = { id: id, name: name, type: "hotfix", user: user }
+        branch = { id: id, name: name, type: "hotfix", user: user, basedOn: "main" }
         view = 1
       };
       

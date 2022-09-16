@@ -20,7 +20,7 @@ import { MessageCard, MessageCardSeverity } from "azure-devops-ui/MessageCard";
 import { IListItemDetails, ListItem, ScrollableList } from 'azure-devops-ui/List';
 import { ArrayItemProvider } from 'azure-devops-ui/Utilities/Provider';
 import { CreateBuildDefinitionAsync, DeletePipelineAsync, GetBuildStatusAsync, RunBuildAsync } from '../../services/pipeline';
-import { GetRepositoryAsync } from '../../services/repository';
+import { GetRepositoryAsync, CreateBranchAsync, UpdateRepositoryAsync } from '../../services/repository';
 import { ProjectStatus } from '../../model/project-status';
 import { IBranchRelease, IRelease } from '../../model/release';
 import { IGitMergeBranch } from '../../model/git-release';
@@ -136,6 +136,20 @@ class Release extends React.Component<{}, IReleaseState>  {
         mergeBranches.push(mergeBranch);
       }
 
+      //Create branch
+      await CreateBranchAsync({ 
+        repository: repository.id, 
+        type: 'release',
+        name: currentRelease.name
+      });
+
+      await UpdateRepositoryAsync({
+        repository: repository.id,
+        type: 'release',
+        name: currentRelease.name
+      });
+
+      //Create Pipeline Merge
       var token = DevOps.getConfiguration().witInputs["PATField"].toString();
       var releaseOption = {
         repositoryId: repository.id,
