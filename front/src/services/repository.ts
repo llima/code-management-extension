@@ -43,7 +43,7 @@ export async function CreateBranchAsync(
   const currentProject = await projectService.getProject();
   const gitBranch = await client.getBranch(
     branch.repository,
-    `develop`,
+    branch.basedOn ?? "main",
     currentProject?.name
   );
 

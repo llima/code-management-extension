@@ -12,9 +12,9 @@
     "version": {
       "Major": "1",
       "Minor": "0",
-      "Patch": "7"
+      "Patch": "9"
     },
-    "minimumAgentVersion": "1.0.7",
+    "minimumAgentVersion": "1.0.9",
     "instanceNameFormat": "Code Management Release Merge",
     "inputs": [        
           {

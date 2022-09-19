@@ -30,7 +30,7 @@ async function main(): Promise<void> {
 
     const repositoryUrl = tl.getPathInput("repositoryUrl", true) ?? "";
     const releaseBranch = tl.getPathInput("releaseBranch", true) ?? "";
-    const basedBranch = tl.getPathInput("basedBranch", true) ?? "develop";
+    const basedBranch = tl.getPathInput("basedBranch", true) ?? "main";
     const mergeBranches = tl.getPathInput("mergeBranches", true) ?? "";
 
     const username = tl.getVariable("code_management_username") ?? "";
