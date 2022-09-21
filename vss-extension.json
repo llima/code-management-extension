@@ -1,6 +1,6 @@
 {
     "manifestVersion": 1,
-    "version": "1.0.137",
+    "version": "1.0.139",
     "id": "code-management",
     "publisher": "llima",
     "name": "Code Management",
@@ -51,6 +51,9 @@
         },
         {
             "path": "tasks/release-merge/build"
+        },
+        {
+            "path": "tasks/work-marker/build"
         }
     ],
     "contributions": [
@@ -97,6 +100,16 @@
             ],
             "properties": {
                 "name": "tasks/release-merge/build"
+            }
+        },
+        {
+            "id": "code-management-markers-task",
+            "type": "ms.vss-distributed-task.task",
+            "targets": [
+                "ms.vss-distributed-task.tasks"
+            ],
+            "properties": {
+                "name": "tasks/work-marker/build"
             }
         }
     ]

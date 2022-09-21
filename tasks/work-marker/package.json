@@ -1,0 +1,31 @@
+{
+  "name": "code-management-markers",
+  "version": "1.0.0",
+  "description": "Code Management Extension for Azure DevOps",
+  "main": "work-marker.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/llima/code-management-extension"
+  },
+  "author": "IT Team",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/llima/code-management-extension/issues"
+  },
+  "scripts": {
+    "build": "npm run package-release",
+    "clear": "(if exist build rd /q /s build)",
+    "package-release": "tsc -p . && npm prune -production && npm run copy-files",
+    "copy-files": "copy task.json build && Xcopy node_modules build\\node_modules /E/H/C/I/Y"
+  },
+  "homepage": "./",
+  "dependencies": {
+    "@types/axios": "^0.14.0",
+    "axios": "^0.27.2",
+    "azure-pipelines-task-lib": "^3.1.3"
+  },
+  "devDependencies": {
+    "@types/node": "^12.0.0",
+    "typescript": "^4.1.2"
+  }
+}

@@ -211,6 +211,10 @@ class Feature extends React.Component<{}, IFeatureState>  {
           </div>
           <div className="feature--add-button feature--alert">
             <Button
+              text="Deploy"
+              primary={true}
+            />
+            <Button
               text="Delete"
               danger={true}
               onClick={() => this.setState({ viewType: 5 })}

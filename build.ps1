@@ -8,5 +8,11 @@ Set-Location -Path .\tasks\release-merge\
 npm install
 Set-Location -Path $currentFolder
 npm run build --prefix tasks/release-merge
+
+# Tasks
+Set-Location -Path .\tasks\work-marker\
+npm install
+Set-Location -Path $currentFolder
+npm run build --prefix tasks/work-marker
     
 tfx extension create --manifest-globs vss-extension.json --overrides-file ./configs/release.json --root ./
