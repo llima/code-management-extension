@@ -1,7 +1,24 @@
 import tl = require("azure-pipelines-task-lib/task");
 import path = require("path");
 
+import dayjs from 'dayjs';
+
 const axios = require("axios").default;
+
+//Transform string date
+function formatString(val: string): string {
+  const matches = val.match(/\$\(Date:([^)]+)\)/g);
+
+  if (matches != null && matches?.length > 0) {
+    const pattern =  matches[0];
+    const display = matches[0].replace('$(Date:', '').replace(')', '');
+    const now = dayjs().format(display);
+
+    val = val.replace(pattern, now);
+  }
+
+  return val;
+}
 
 async function main(): Promise<void> {
   try {
@@ -28,7 +45,7 @@ async function main(): Promise<void> {
       {
         op: "add",
         path: "/fields/System.History",
-        value: comments,
+        value: formatString(comments),
       },
       {
         op: "add",

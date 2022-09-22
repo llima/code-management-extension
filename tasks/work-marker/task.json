@@ -1,5 +1,5 @@
 {
-    "id": "3522c94e-933c-4ba7-b229-6faf115820c7",
+    "id": "ea4c081e-4c2e-4405-a315-80ed31f4bf67",
     "name": "code-management-markers",
     "friendlyName": "Code Management Work Marker",
     "description": "Code Management Extension for Azure DevOps",
@@ -12,9 +12,9 @@
     "version": {
       "Major": "1",
       "Minor": "0",
-      "Patch": "0"
+      "Patch": "1"
     },
-    "minimumAgentVersion": "1.0.0",
+    "minimumAgentVersion": "1.0.1",
     "instanceNameFormat": "Code Management Work Marker",
     "inputs": [        
           {
@@ -29,7 +29,7 @@
             "name": "comments",
             "type": "string",
             "label": "Comments",
-            "helpMarkDown": "Enter the comments.",
+            "helpMarkDown": "Enter the comments. e.g. My comments text - $(Date:DD/MM/YYYY - HH:mm)",
             "defaultValue": "",
             "required": true
           },

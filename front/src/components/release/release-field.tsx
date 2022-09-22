@@ -39,7 +39,7 @@ class Release extends React.Component<{}, IReleaseState>  {
   releaseService = Services.getService<IReleaseService>(BranchServiceId);
 
   private items: ArrayItemProvider<IBranch> = new ArrayItemProvider([]);
-  private itemsVew: ArrayItemProvider<IBranchRelease> = new ArrayItemProvider([]);
+  private itemsView: ArrayItemProvider<IBranchRelease> = new ArrayItemProvider([]);
 
   private branches: IBranch[] = [];
   private currentWorkItem: any = {};
@@ -56,15 +56,19 @@ class Release extends React.Component<{}, IReleaseState>  {
   }
 
   async init() {
-
+    this.branches = [];
+    this.items = new ArrayItemProvider([]);
+    this.itemsView = new ArrayItemProvider([]);
+    
     var workItem = await this.workItemFormService;
+    workItem.refresh();
+
     this.currentWorkItem = await workItem.getFieldValues(["System.Title", "System.Id", "System.WorkItemType"]);
     var id = this.currentWorkItem["System.Id"].toString();
 
     if (id != 0) {
-
-      var relations = await workItem.getWorkItemRelations();
-
+      var relations = await workItem.getWorkItemRelations();           
+      
       for (const relation of relations) {
         var relationId = relation.url.substring(relation.url.lastIndexOf('/') + 1);
         var branch = await this.branchService.getById(relationId);
@@ -103,7 +107,7 @@ class Release extends React.Component<{}, IReleaseState>  {
           await this.releaseService.save(release);
         }
 
-        this.itemsVew = new ArrayItemProvider(release.branches);        
+        this.itemsView = new ArrayItemProvider(release.branches);        
       };
 
       this.setState({ currentRelease: release, viewType: view });
@@ -192,7 +196,12 @@ class Release extends React.Component<{}, IReleaseState>  {
     //     clearInterval(that.intervalStatus);
     //   }
     // }
-  }  
+  }
+
+  async refresh() {
+    await this.init();
+    this.setState({ viewType: 2 });
+  }
 
   render() {
 
@@ -229,21 +238,31 @@ class Release extends React.Component<{}, IReleaseState>  {
           </div>
           <div className="release--group" style={{ display: "flex", height: "150px" }}>
 
-            <ScrollableList
-              itemProvider={this.items}
-              renderRow={renderBranchListRow}
-              width="100%"
-            />
-
+            { this.items.length > 0 ? 
+                <ScrollableList
+                  itemProvider={this.items}
+                  renderRow={renderBranchListRow}
+                  width="100%"
+                />
+                : <span>No related items were found.</span>
+            }
           </div>
           <div className="release--add-button">
             <Button
+              className="release--mr-button"
+              text="Refresh"
+              onClick={() => this.refresh()}
+            />
+            <Button
+              className="release--mr-button"
               text="Cancel"
               onClick={() => this.setState({ viewType: 1 })}
             />
             <Button
+              className={`release--mr-button ${this.items.length == 0 ? "disabled" : ""}`}
               text="Create"
               primary={true}
+              disabled={this.items.length == 0}
               onClick={() => this.create()}
             />
           </div>
@@ -263,7 +282,7 @@ class Release extends React.Component<{}, IReleaseState>  {
           <div className="release--group" style={{ display: "flex", height: "150px" }}>
 
             <ScrollableList
-              itemProvider={this.itemsVew}
+              itemProvider={this.itemsView}
               renderRow={renderReleaseRow}
               width="100%"
             />
