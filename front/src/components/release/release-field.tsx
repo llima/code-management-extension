@@ -20,7 +20,7 @@ import { MessageCard, MessageCardSeverity } from "azure-devops-ui/MessageCard";
 import { IListItemDetails, ListItem, ScrollableList } from 'azure-devops-ui/List';
 import { ArrayItemProvider } from 'azure-devops-ui/Utilities/Provider';
 import { CreateBuildDefinitionAsync, DeletePipelineAsync, GetBuildStatusAsync, RunBuildAsync } from '../../services/pipeline';
-import { GetRepositoryAsync } from '../../services/repository';
+import { DeleteBranchAsync, GetRepositoryAsync } from '../../services/repository';
 import { ProjectStatus } from '../../model/project-status';
 import { IBranchRelease, IRelease } from '../../model/release';
 import { IGitMergeBranch } from '../../model/git-release';
@@ -107,7 +107,7 @@ class Release extends React.Component<{}, IReleaseState>  {
           await this.releaseService.save(release);
         }
 
-        this.itemsView = new ArrayItemProvider(release.branches);        
+        this.itemsView = new ArrayItemProvider(release.branches);
       };
 
       this.setState({ currentRelease: release, viewType: view });
@@ -161,23 +161,28 @@ class Release extends React.Component<{}, IReleaseState>  {
         buildRunId: runBuild.id,
         url: `${repository.webUrl}?version=GBrelease/${escape(currentRelease.name ?? "")}`,
         repositoryUrl: repository.webUrl,
-        projectStatus: ProjectStatus.Running
+        projectStatus: ProjectStatus.Running,
+        type: "release"
       });
 
     }
 
     await this.releaseService.save(currentRelease);
 
+    this.itemsView = new ArrayItemProvider(currentRelease.branches);
     this.setState({ viewType: 3, currentRelease: currentRelease });
   }
 
   async delete() {
-    // const { currentBranch } = this.state;
+    const { currentRelease } = this.state;
 
-    // await DeleteBranchAsync(currentBranch);
-    // this.branchService.remove(currentBranch.id ?? "");
+    for (const branch of currentRelease.branches) {
+      await DeleteBranchAsync(branch);
+    }
 
-    // this.init();
+    await this.releaseService.remove(currentRelease.id ?? "");
+
+    this.init();
   }
 
   async getBuildStatus(that: this) {
@@ -289,7 +294,11 @@ class Release extends React.Component<{}, IReleaseState>  {
 
           </div>
           <div className="release--add-button">
-
+            <Button
+                text="Delete"
+                danger={true}
+                onClick={() => this.setState({ viewType: 5 })}
+              />
           </div>
         </div>);
       case 4: // NO SAVE

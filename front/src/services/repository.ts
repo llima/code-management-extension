@@ -6,6 +6,7 @@ import {
   GitRepository,
   GitRefUpdate,
   GitRestClient,
+  GitPullRequest
 } from "azure-devops-extension-api/Git";
 import { IBranch } from "../model/branch";
 
@@ -89,4 +90,23 @@ export async function DeleteBranchAsync(branch: IBranch): Promise<void> {
       );
     }
   }
+}
+
+export async function CreatePullRequestAsync(branch: IBranch, targetBranch: string): Promise<void> {
+  const projectService = await DevOps.getService<IProjectPageService>(
+    "ms.vss-tfs-web.tfs-page-data-service"
+  );
+
+  const currentProject = await projectService.getProject();
+
+  let gitPullRequest = {} as GitPullRequest;
+  gitPullRequest.sourceRefName = `refs/heads/${branch.type}/${branch.name}`;
+  gitPullRequest.targetRefName = `refs/heads/${targetBranch}`;
+  gitPullRequest.title = `PR: ${branch.type} - ${branch.name}`;
+
+  await client.createPullRequest(
+    gitPullRequest,
+    branch.repository ?? "",
+    currentProject?.name
+  );
 }

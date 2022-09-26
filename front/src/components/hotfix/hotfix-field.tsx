@@ -13,7 +13,7 @@ import { Button } from "azure-devops-ui/Button";
 import { Dropdown } from "azure-devops-ui/Dropdown";
 import { IListBoxItem } from 'azure-devops-ui/ListBox';
 import { Icon } from 'azure-devops-ui/Icon';
-import { CreateBranchAsync, DeleteBranchAsync, GetRepositoriesAsync } from '../../services/repository';
+import { CreateBranchAsync, CreatePullRequestAsync, DeleteBranchAsync, GetRepositoriesAsync } from '../../services/repository';
 import { Transform } from '../../services/string';
 import { Services } from '../../services/services';
 import { BranchServiceId, IBranchService } from '../../services/branch';
@@ -26,6 +26,7 @@ import { MessageCard, MessageCardSeverity } from "azure-devops-ui/MessageCard";
 interface IHotfixState {
   viewType: number;
   currentBranch: IBranch;
+  openPullRequest: boolean;
 }
 
 class Hotfix extends React.Component<{}, IHotfixState>  {
@@ -41,7 +42,8 @@ class Hotfix extends React.Component<{}, IHotfixState>  {
 
     this.state = {
       viewType: 0,
-      currentBranch: {}
+      currentBranch: {},
+      openPullRequest: false
     }
 
     this.init();
@@ -89,6 +91,27 @@ class Hotfix extends React.Component<{}, IHotfixState>  {
     this.setState({ viewType: 3 });
   }
 
+  async createPullRequest() {
+    const { currentBranch } = this.state;
+
+    var user = DevOps.getUser();
+    var devBranch = {
+      name: `${currentBranch.name}-todev`, 
+      type: "hotfix", 
+      user: user, 
+      basedOn: `${currentBranch.type}/${currentBranch.name}`,
+      repository: currentBranch.repository
+    };
+    
+    var gitRepo = await CreateBranchAsync(devBranch);
+    
+    if (gitRepo != null) {
+      await CreatePullRequestAsync(devBranch, "develop");
+      
+      this.setState({ openPullRequest: true });
+    }
+  }
+
   async delete() {
     const { currentBranch } = this.state;
     
@@ -102,7 +125,7 @@ class Hotfix extends React.Component<{}, IHotfixState>  {
 
   render() {
 
-    const { viewType, currentBranch } = this.state;
+    const { viewType, currentBranch, openPullRequest } = this.state;
 
     switch (viewType) {
       case 0://LOADING
@@ -212,6 +235,14 @@ class Hotfix extends React.Component<{}, IHotfixState>  {
           </div>
           <div className="hotfix--add-button hotfix--alert">
             <Button
+              className="hotfix--mr-button"
+              text="Pull Request"
+              primary={true}
+              disabled={openPullRequest === true}
+              onClick={() => this.createPullRequest()}
+            />
+            <Button
+              className="hotfix--mr-button"
               text="Delete"
               danger={true}
               onClick={() => this.setState({ viewType: 5 })}
