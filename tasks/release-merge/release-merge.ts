@@ -58,9 +58,10 @@ async function main(): Promise<void> {
 
       shell.exec(`git fetch origin ${b}`);
       shell.exec(`git merge origin/${b} --no-edit`);
+
+      shell.exec(`git push -d origin ${b}`);
     }
 
-    //shell.exec("git commit -m \"Release merge made with Code Management Extensions!\"");
     shell.exec(`git push origin ${releaseBranch} --force`);
 
     shell.cd("..");

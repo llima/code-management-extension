@@ -13,7 +13,7 @@ import { Button } from "azure-devops-ui/Button";
 import { Dropdown } from "azure-devops-ui/Dropdown";
 import { IListBoxItem } from 'azure-devops-ui/ListBox';
 import { Icon } from 'azure-devops-ui/Icon';
-import { CreateBranchAsync, CreatePullRequestAsync, DeleteBranchAsync, GetRepositoriesAsync } from '../../services/repository';
+import { CreateBranchAsync, CreatePullRequestAsync, DeleteBranchAsync, GetRepositoriesAsync, ExistsBranchAsync } from '../../services/repository';
 import { Transform } from '../../services/string';
 import { Services } from '../../services/services';
 import { BranchServiceId, IBranchService } from '../../services/branch';
@@ -69,7 +69,14 @@ class Feature extends React.Component<{}, IFeatureState>  {
         branch = { id: id, name: name, type: "feature", user: user, basedOn: "main" }
         view = 1
       };
-      this.setState({ currentBranch: branch, viewType: view })
+
+      var hasPullRequest = await ExistsBranchAsync({
+        repository: branch.repository,
+        name: branch.name,
+        type: "review"
+      });
+
+      this.setState({ currentBranch: branch, viewType: view, openPullRequest: hasPullRequest })
     }
     else {
       this.setState({ viewType: 4 })
@@ -106,8 +113,8 @@ class Feature extends React.Component<{}, IFeatureState>  {
 
     var user = DevOps.getUser();
     var devBranch = {
-      name: `${currentBranch.name}-todev`, 
-      type: "feature", 
+      name: currentBranch.name, 
+      type: "review", 
       user: user, 
       basedOn: `${currentBranch.type}/${currentBranch.name}`,
       repository: currentBranch.repository
@@ -241,7 +248,6 @@ class Feature extends React.Component<{}, IFeatureState>  {
               onClick={() => this.createPullRequest()}
             />
             <Button
-              className="feature--mr-button"
               text="Delete"
               danger={true}
               onClick={() => this.setState({ viewType: 5 })}

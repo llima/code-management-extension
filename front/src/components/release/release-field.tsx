@@ -164,10 +164,14 @@ class Release extends React.Component<{}, IReleaseState>  {
         projectStatus: ProjectStatus.Running,
         type: "release"
       });
-
     }
 
     await this.releaseService.save(currentRelease);
+
+    //Remove related items, not git branches.
+    for (const b of this.branches) {
+      this.branchService.remove(b.id ?? "");
+    }
 
     this.itemsView = new ArrayItemProvider(currentRelease.branches);
     this.setState({ viewType: 3, currentRelease: currentRelease });
@@ -264,7 +268,7 @@ class Release extends React.Component<{}, IReleaseState>  {
               onClick={() => this.setState({ viewType: 1 })}
             />
             <Button
-              className={`release--mr-button ${this.items.length == 0 ? "disabled" : ""}`}
+              className={`${this.items.length == 0 ? "disabled" : ""}`}
               text="Create"
               primary={true}
               disabled={this.items.length == 0}

@@ -110,3 +110,22 @@ export async function CreatePullRequestAsync(branch: IBranch, targetBranch: stri
     currentProject?.name
   );
 }
+
+export async function ExistsBranchAsync(branch: IBranch): Promise<boolean> {
+  const projectService = await DevOps.getService<IProjectPageService>(
+    "ms.vss-tfs-web.tfs-page-data-service"
+  );
+
+  if (branch.repository) {
+    const currentProject = await projectService.getProject();
+    const gitBranches = await client.getBranches(
+      branch.repository,
+      currentProject?.name
+    );
+  
+    var items = gitBranches.find(a => a.name == `${branch.type}/${branch.name}`);
+    return items != undefined;
+  }
+
+  return false;
+}
