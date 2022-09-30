@@ -12,9 +12,9 @@
     "version": {
       "Major": "1",
       "Minor": "0",
-      "Patch": "1"
+      "Patch": "3"
     },
-    "minimumAgentVersion": "1.0.1",
+    "minimumAgentVersion": "1.0.3",
     "instanceNameFormat": "Code Management Work Marker",
     "inputs": [        
           {
@@ -40,7 +40,15 @@
             "helpMarkDown": "Enter the base url. e.g. https://dev.azure.com/{org}/{team-proj}",
             "defaultValue": "",
             "required": true
-          }          
+          },
+          {
+            "name": "timezone",
+            "type": "string",
+            "label": "Time Zone",
+            "helpMarkDown": "Enter the time zone. e.g. America/New_York or America/Sao_Paulo",
+            "defaultValue": "America/Sao_Paulo",
+            "required": false
+          } 
     ],
     "execution": {
       "Node10": {

@@ -1,6 +1,6 @@
 {
     "manifestVersion": 1,
-    "version": "1.0.159",
+    "version": "1.0.169",
     "id": "code-management",
     "publisher": "llima",
     "name": "Code Management",
@@ -54,6 +54,9 @@
         },
         {
             "path": "tasks/work-marker/build"
+        },
+        {
+            "path": "tasks/main-merge/build"
         }
     ],
     "contributions": [
@@ -110,6 +113,16 @@
             ],
             "properties": {
                 "name": "tasks/work-marker/build"
+            }
+        },
+        {
+            "id": "code-management-main-merge-task",
+            "type": "ms.vss-distributed-task.task",
+            "targets": [
+                "ms.vss-distributed-task.tasks"
+            ],
+            "properties": {
+                "name": "tasks/main-merge/build"
             }
         }
     ]

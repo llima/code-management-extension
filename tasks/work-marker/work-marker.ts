@@ -2,17 +2,22 @@ import tl = require("azure-pipelines-task-lib/task");
 import path = require("path");
 
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 const axios = require("axios").default;
 
 //Transform string date
-function formatString(val: string): string {
+function formatString(val: string, customTZ: string): string {
   const matches = val.match(/\$\(Date:([^)]+)\)/g);
 
   if (matches != null && matches?.length > 0) {
     const pattern =  matches[0];
     const display = matches[0].replace('$(Date:', '').replace(')', '');
-    const now = dayjs().format(display);
+    const now = dayjs().tz(customTZ).format(display);
 
     val = val.replace(pattern, now);
   }
@@ -24,6 +29,7 @@ async function main(): Promise<void> {
   try {
     tl.setResourcePath(path.join(__dirname, "task.json"));
 
+    const customTZ = tl.getPathInput("timezone", true) ?? "";
     const comments = tl.getPathInput("comments", true) ?? "";
     const tags = tl.getPathInput("tags", true) ?? "";
     const baseUrl = tl.getPathInput("baseUrl", true) ?? "";
@@ -45,7 +51,7 @@ async function main(): Promise<void> {
       {
         op: "add",
         path: "/fields/System.History",
-        value: formatString(comments),
+        value: formatString(comments, customTZ),
       },
       {
         op: "add",
