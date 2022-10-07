@@ -53,6 +53,7 @@ class Release extends React.Component<{}, IReleaseState>  {
     }
 
     this.init();
+    this.refresh();
   }
 
   async init() {
@@ -256,12 +257,7 @@ class Release extends React.Component<{}, IReleaseState>  {
                 : <span>No related items were found.</span>
             }
           </div>
-          <div className="release--add-button">
-            <Button
-              className="release--mr-button"
-              text="Refresh"
-              onClick={() => this.refresh()}
-            />
+          <div className="release--add-button">            
             <Button
               className="release--mr-button"
               text="Cancel"
