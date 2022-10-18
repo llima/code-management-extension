@@ -12,9 +12,9 @@
     "version": {
       "Major": "1",
       "Minor": "0",
-      "Patch": "3"
+      "Patch": "5"
     },
-    "minimumAgentVersion": "1.0.3",
+    "minimumAgentVersion": "1.0.5",
     "instanceNameFormat": "Code Management Work Marker",
     "inputs": [        
           {
@@ -47,6 +47,14 @@
             "label": "Time Zone",
             "helpMarkDown": "Enter the time zone. e.g. America/New_York or America/Sao_Paulo",
             "defaultValue": "America/Sao_Paulo",
+            "required": false
+          },
+          {
+            "name": "changeStatus",
+            "type": "boolean",
+            "label": "Change Work Item Status",
+            "helpMarkDown": "Change Work Item Status to 'Done'",
+            "defaultValue": false,
             "required": false
           } 
     ],

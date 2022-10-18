@@ -1,6 +1,6 @@
 {
   "name": "code-management-markers",
-  "version": "1.0.3",
+  "version": "1.0.5",
   "description": "Code Management Extension for Azure DevOps",
   "main": "work-marker.js",
   "repository": {

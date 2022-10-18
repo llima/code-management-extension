@@ -1,9 +1,9 @@
 import tl = require("azure-pipelines-task-lib/task");
 import path = require("path");
 
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import timezone from 'dayjs/plugin/timezone';
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -15,8 +15,8 @@ function formatString(val: string, customTZ: string): string {
   const matches = val.match(/\$\(Date:([^)]+)\)/g);
 
   if (matches != null && matches?.length > 0) {
-    const pattern =  matches[0];
-    const display = matches[0].replace('$(Date:', '').replace(')', '');
+    const pattern = matches[0];
+    const display = matches[0].replace("$(Date:", "").replace(")", "");
     const now = dayjs().tz(customTZ).format(display);
 
     val = val.replace(pattern, now);
@@ -33,10 +33,11 @@ async function main(): Promise<void> {
     const comments = tl.getPathInput("comments", true) ?? "";
     const tags = tl.getPathInput("tags", true) ?? "";
     const baseUrl = tl.getPathInput("baseUrl", true) ?? "";
-    
+    const changeStatus = tl.getBoolInput("changeStatus", false);
+
     const PAT = tl.getVariable("code_management_pat") ?? "";
 
-    const token = Buffer.from(`:${PAT}`).toString('base64');
+    const token = Buffer.from(`:${PAT}`).toString("base64");
     const headers = {
       Authorization: `Basic ${token}`,
       "Content-Type": "application/json-patch+json",
@@ -47,7 +48,7 @@ async function main(): Promise<void> {
       headers: headers,
     });
 
-    const req = [
+    let req = [
       {
         op: "add",
         path: "/fields/System.History",
@@ -60,11 +61,19 @@ async function main(): Promise<void> {
       },
     ];
 
+    if (changeStatus) {
+      req.push({
+        op: "add",
+        path: "/fields/System.State",
+        value: "Done",
+      });
+    }
+
     const branchName = tl.getVariable("Build.SourceBranchName") ?? "";
     console.log(`Branch Name: ${branchName}`);
 
-    const hashSplits = branchName.split('#');
-    const dashSplist = hashSplits.length > 1 ? hashSplits[1].split('-') : ["0"];
+    const hashSplits = branchName.split("#");
+    const dashSplist = hashSplits.length > 1 ? hashSplits[1].split("-") : ["0"];
     const workItemId = dashSplist[0];
 
     if (workItemId === "0") {
@@ -76,7 +85,7 @@ async function main(): Promise<void> {
     instance
       .patch(`_apis/wit/workitems/${workItemId}?api-version=7.1-preview.3`, req)
       .then((res: any) => {
-        console.log(`Work Item updated: ${res.status}`);        
+        console.log(`Work Item updated: ${res.status}`);
       })
       .catch((error: any) => {
         console.error(error.message);

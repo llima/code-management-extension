@@ -51,9 +51,17 @@ class Release extends React.Component<{}, IReleaseState>  {
       viewType: 0,
       currentRelease: { branches: [] }
     }
-
-    this.init();
+    
     this.refresh();
+
+    setTimeout(() => {
+      this.init();
+    }, 1000);
+  }
+
+  async refresh() {
+    var workItem = await this.workItemFormService;
+    workItem.refresh();
   }
 
   async init() {
@@ -64,11 +72,11 @@ class Release extends React.Component<{}, IReleaseState>  {
     var workItem = await this.workItemFormService;
     workItem.refresh();
 
-    this.currentWorkItem = await workItem.getFieldValues(["System.Title", "System.Id", "System.WorkItemType"]);
+    this.currentWorkItem = await workItem.getFieldValues(["System.Title", "System.Id", "System.WorkItemType", "System.State"]);
     var id = this.currentWorkItem["System.Id"].toString();
 
     if (id != 0) {
-      var relations = await workItem.getWorkItemRelations();           
+      var relations = await workItem.getWorkItemRelations();
       
       for (const relation of relations) {
         var relationId = relation.url.substring(relation.url.lastIndexOf('/') + 1);
@@ -105,11 +113,16 @@ class Release extends React.Component<{}, IReleaseState>  {
         }
 
         if (updateStatus) {
-          await this.releaseService.save(release);
+          await this.releaseService.save(release);          
+        }
+
+        //Remove Release Item
+        if (this.currentWorkItem["System.State"].toString() == "Done") {
+          await this.releaseService.remove(release.id ?? "");          
         }
 
         this.itemsView = new ArrayItemProvider(release.branches);
-      };
+      }
 
       this.setState({ currentRelease: release, viewType: view });
     }
@@ -206,12 +219,7 @@ class Release extends React.Component<{}, IReleaseState>  {
     //     clearInterval(that.intervalStatus);
     //   }
     // }
-  }
-
-  async refresh() {
-    await this.init();
-    this.setState({ viewType: 2 });
-  }
+  }  
 
   render() {
 
