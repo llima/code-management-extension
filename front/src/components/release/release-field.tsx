@@ -10,34 +10,38 @@ import './release-field.scss';
 
 import { Card } from "azure-devops-ui/Card";
 import { Button } from "azure-devops-ui/Button";
-import { Dropdown } from "azure-devops-ui/Dropdown";
-import { IListBoxItem } from 'azure-devops-ui/ListBox';
 import { Icon, IconSize } from 'azure-devops-ui/Icon';
-import { CreateBranchAsync, GetRepositoriesAsync } from '../../services/repository';
 import { Transform } from '../../services/string';
 import { Services } from '../../services/services';
 import { BranchServiceId, IBranchService } from '../../services/branch';
 import { IBranch } from '../../model/branch';
 import { Link, Spinner } from '@fluentui/react';
-import { VssPersona } from "azure-devops-ui/VssPersona";
 import { MessageCard, MessageCardSeverity } from "azure-devops-ui/MessageCard";
 import { IListItemDetails, ListItem, ScrollableList } from 'azure-devops-ui/List';
 import { ArrayItemProvider } from 'azure-devops-ui/Utilities/Provider';
-
+import { CreateBuildDefinitionAsync, DeletePipelineAsync, GetBuildStatusAsync, RunBuildAsync } from '../../services/pipeline';
+import { DeleteBranchAsync, GetRepositoryAsync } from '../../services/repository';
+import { ProjectStatus } from '../../model/project-status';
+import { IBranchRelease, IRelease } from '../../model/release';
+import { IGitMergeBranch } from '../../model/git-release';
+import { IReleaseService } from '../../services/release';
+import { Status, Statuses, StatusSize } from "azure-devops-ui/Status";
 
 interface IReleaseState {
   viewType: number;
-  currentBranch: IBranch;
+  currentRelease: IRelease;
 }
 
 class Release extends React.Component<{}, IReleaseState>  {
 
   workItemFormService = DevOps.getService<IWorkItemFormService>(WorkItemTrackingServiceIds.WorkItemFormService);
   branchService = Services.getService<IBranchService>(BranchServiceId);
+  releaseService = Services.getService<IReleaseService>(BranchServiceId);
 
-  private repositories: Array<IListBoxItem<{}>> = [];
-  private branchs: ArrayItemProvider<IBranch> = new ArrayItemProvider([]);
+  private items: ArrayItemProvider<IBranch> = new ArrayItemProvider([]);
+  private itemsView: ArrayItemProvider<IBranchRelease> = new ArrayItemProvider([]);
 
+  private branches: IBranch[] = [];
   private currentWorkItem: any = {};
 
   constructor(props: {}) {
@@ -45,36 +49,82 @@ class Release extends React.Component<{}, IReleaseState>  {
 
     this.state = {
       viewType: 0,
-      currentBranch: {}
+      currentRelease: { branches: [] }
     }
+    
+    this.refresh();
 
-    this.init();
+    setTimeout(() => {
+      this.init();
+    }, 1000);
+  }
+
+  async refresh() {
+    var workItem = await this.workItemFormService;
+    workItem.refresh();
   }
 
   async init() {
+    this.branches = [];
+    this.items = new ArrayItemProvider([]);
+    this.itemsView = new ArrayItemProvider([]);
+    
+    var workItem = await this.workItemFormService;
+    workItem.refresh();
 
-    this.currentWorkItem = await (await this.workItemFormService).getFieldValues(["System.Title", "System.Id", "System.WorkItemType"]);
+    this.currentWorkItem = await workItem.getFieldValues(["System.Title", "System.Id", "System.WorkItemType", "System.State"]);
     var id = this.currentWorkItem["System.Id"].toString();
 
     if (id != 0) {
-
-      //FAKE
-      this.branchs = new ArrayItemProvider(await this.branchService.getAll());
-
-      (await GetRepositoriesAsync()).forEach(element => {
-        this.repositories.push({ id: element.name, text: element.name, iconProps: { iconName: "GitLogo", style: { color: "#f05133" } } })
-      });
+      var relations = await workItem.getWorkItemRelations();
+      
+      for (const relation of relations) {
+        var relationId = relation.url.substring(relation.url.lastIndexOf('/') + 1);
+        var branch = await this.branchService.getById(relationId);
+        if (branch != null) {
+          this.branches.push(branch);
+        }
+      }
+      this.items = new ArrayItemProvider(this.branches);
 
       var name = `rc#${id}-${Transform(this.currentWorkItem["System.Title"].toString())}`;
-      var branch = await this.branchService.getById(id);
+      var release = await this.releaseService.getById(id);
       var view = 3;
 
-      if (branch == null) {
+      if (release == null) {
         var user = DevOps.getUser();
-        branch = { id: id, name: name, type: "release", user: user }
-        view = 1
-      };
-      this.setState({ currentBranch: branch, viewType: view })
+        release = { id: id, name: name, user: user, branches: [] };
+        view = 1;
+      }
+      else {        
+        //Check Build Status
+        let updateStatus = false;
+
+        for (const b of release.branches) {
+          if (b.projectStatus == ProjectStatus.Running) {
+            let status = await GetBuildStatusAsync(b.buildRunId ?? 0);
+            if (status == ProjectStatus.Succeeded) {
+              updateStatus = true;
+              b.projectStatus = ProjectStatus.Succeeded;
+
+              await DeletePipelineAsync(b.buildDefinitionId ?? 0);
+            }
+          }          
+        }
+
+        if (updateStatus) {
+          await this.releaseService.save(release);          
+        }
+
+        //Remove Release Item
+        if (this.currentWorkItem["System.State"].toString() == "Done") {
+          await this.releaseService.remove(release.id ?? "");          
+        }
+
+        this.itemsView = new ArrayItemProvider(release.branches);
+      }
+
+      this.setState({ currentRelease: release, viewType: view });
     }
     else {
       this.setState({ viewType: 4 })
@@ -82,30 +132,98 @@ class Release extends React.Component<{}, IReleaseState>  {
   }
 
   async create() {
-    const { currentBranch } = this.state;
 
-    var gitRepo = await CreateBranchAsync(currentBranch);
+    const { currentRelease } = this.state;
 
-    if (gitRepo != null) {
-      currentBranch.url = `${gitRepo.webUrl}?version=GBrelease/${escape(currentBranch.name ?? "")}`;
-      currentBranch.repositoryUrl = gitRepo.webUrl;
-      await this.branchService.save(currentBranch);
+    const repos = Array.from(
+      this.branches.reduce((a, { repository, ...rest }) => {
+        return a.set(repository, [rest].concat(a.get(repository) || []));
+      }, new Map())
+    ).map(([repository, children]) => ({ repository, children }));
+
+    for (const r of repos) {
+
+      var mergeBranches: IGitMergeBranch[] = [];
+      var repository = await GetRepositoryAsync(r.repository ?? "");
+
+      for (const b of r.children) {
+        var mergeBranch = {} as IGitMergeBranch;
+        mergeBranch.branch = `${b.type}/${b.name}`;
+        mergeBranch.repositoryId = repository.id;
+        mergeBranch.repositoryUrl = repository.webUrl;
+        mergeBranches.push(mergeBranch);
+      }
+
+      var token = DevOps.getConfiguration().witInputs["PATField"].toString();
+      var releaseOption = {
+        repositoryId: repository.id,
+        repositoryUrl: repository.webUrl,
+        releaseBranch: `release/${currentRelease.name}`,
+        basedBranch: "main",
+        mergeBranches: mergeBranches,
+        user: currentRelease.user,
+        PAT: token
+      };
+
+      var buildDef = await CreateBuildDefinitionAsync(repository.name, releaseOption);
+      var runBuild = await RunBuildAsync(buildDef.id);
+
+      currentRelease.branches.push({
+        name: currentRelease.name,
+        repository: repository.name,
+        buildDefinitionId: buildDef.id,
+        buildRunId: runBuild.id,
+        url: `${repository.webUrl}?version=GBrelease/${escape(currentRelease.name ?? "")}`,
+        repositoryUrl: repository.webUrl,
+        projectStatus: ProjectStatus.Running,
+        type: "release"
+      });
     }
 
-    this.setState({ viewType: 3 });
+    await this.releaseService.save(currentRelease);
+
+    //Remove related items, not git branches.
+    for (const b of this.branches) {
+      this.branchService.remove(b.id ?? "");
+    }
+
+    this.itemsView = new ArrayItemProvider(currentRelease.branches);
+    this.setState({ viewType: 3, currentRelease: currentRelease });
   }
 
   async delete() {
-    const { currentBranch } = this.state;
+    const { currentRelease } = this.state;
 
-    this.setState({ viewType: 0 })
-    this.branchService.remove(currentBranch.id ?? "");
+    for (const branch of currentRelease.branches) {
+      await DeleteBranchAsync(branch);
+    }
+
+    await this.releaseService.remove(currentRelease.id ?? "");
+
     this.init();
   }
 
+  async getBuildStatus(that: this) {
+    // const { currentBranch } = this.state;
+
+    // if (currentBranch.buildRunId) {
+    //   let status = await GetBuildStatusAsync(currentBranch.buildRunId);
+    //   if (status == ProjectStatus.Succeeded) {
+    //     currentBranch.buildRunId = undefined;
+
+    //     await DeletePipelineAsync(currentBranch.buildDefinitionId ?? 0);
+
+    //     await this.branchService.save(currentBranch);
+    //     this.setState({ viewType: 3 });
+
+    //     clearInterval(that.intervalStatus);
+    //   }
+    // }
+  }  
+
   render() {
 
-    const { viewType, currentBranch } = this.state;
+    const { viewType, currentRelease } = this.state;
 
     switch (viewType) {
       case 0://LOADING
@@ -127,107 +245,68 @@ class Release extends React.Component<{}, IReleaseState>  {
       case 2: // NEW ITEM
         return (<div className="release--content">
           <div className="release--group">
-            <label className="release--group-label">
-              Repository *
-            </label>
-            <Dropdown
-              ariaLabel="Basic"
-              placeholder="Select a repository"
-              showPrefix={true}
-              items={this.repositories}
-              onSelect={(event, item) => {
-                this.setState(prevState => ({
-                  currentBranch: { ...prevState.currentBranch, repository: item.id }
-                }))
-              }}
-            />
-          </div>
-          <div className="release--group">
-            <span className="fontSize font-size secondary-text flex-row flex-center text-ellipsis">
+            <h3 className="flex-row flex-center text-ellipsis">
               {Icon({
                 className: "icon-margin",
                 iconName: "OpenSource",
                 key: "release-name",
               })}
-              release/{currentBranch.name}
-            </span>
+              release/{currentRelease.name}
+            </h3>
           </div>
-          <div className="release--group" style={{ display: "flex", height: "100px" }}>
+          <div className="release--group" style={{ display: "flex", height: "150px" }}>
+
+            { this.items.length > 0 ? 
+                <ScrollableList
+                  itemProvider={this.items}
+                  renderRow={renderBranchListRow}
+                  width="100%"
+                />
+                : <span>No related items were found.</span>
+            }
+          </div>
+          <div className="release--add-button">            
+            <Button
+              className="release--mr-button"
+              text="Cancel"
+              onClick={() => this.setState({ viewType: 1 })}
+            />
+            <Button
+              className={`${this.items.length == 0 ? "disabled" : ""}`}
+              text="Create"
+              primary={true}
+              disabled={this.items.length == 0}
+              onClick={() => this.create()}
+            />
+          </div>
+        </div>);
+      case 3: // LOADED
+        return (<div className="release--content">
+          <div className="release--group">
+            <h3 className="flex-row flex-center text-ellipsis">
+              {Icon({
+                className: "icon-margin",
+                iconName: "OpenSource",
+                key: "release-name",
+              })}
+              release/{currentRelease.name}
+            </h3>
+          </div>
+          <div className="release--group" style={{ display: "flex", height: "150px" }}>
 
             <ScrollableList
-              itemProvider={this.branchs}
-              renderRow={renderListRow}
+              itemProvider={this.itemsView}
+              renderRow={renderReleaseRow}
               width="100%"
             />
 
           </div>
           <div className="release--add-button">
             <Button
-              text="Cancel"
-              onClick={() => this.setState({ viewType: 1 })}
-            /> 
-            <Button 
-              text="Create"
-              primary={true}
-              onClick={() => this.create()}
-              disabled={currentBranch.repository === undefined || currentBranch.repository.trim() == ""}
-            />
-          </div>
-        </div>);
-      case 3: // LOADED
-        return (<div>
-          <div className='release--panel'>
-            <span className="flex-row scroll-hidden">
-              {Icon({
-                className: "icon-margin",
-                iconName: "GitLogo",
-                key: "GitLogo",
-              })}
-              <Link
-                className="fontSizeM font-size-m text-ellipsis bolt-table-link bolt-table-inline-link"
-                excludeTabStop
-                target="_blank"
-                href={currentBranch.url}>
-                {currentBranch.name}
-              </Link>
-            </span>
-            <span className="fontSize font-size secondary-text flex-row flex-center text-ellipsis">
-              {Icon({
-                className: "icon-margin",
-                iconName: "Contact",
-                key: "branch-code",
-              })}
-              <span>Generated by </span>
-              <VssPersona identityDetailsProvider={{
-                getDisplayName() {
-                  return currentBranch.user?.displayName;
-                },
-                getIdentityImageUrl(size: number) {
-                  return currentBranch.user?.imageUrl;
-                }
-              }} size={"extra-small"} />
-
-              <Link
-                className="scroll-hidden flex-row flex-baseline branch-link monospaced-text bolt-link subtle"
-                excludeTabStop
-                target="_blank"
-                href={currentBranch.repositoryUrl}
-              >
-                {Icon({
-                  className: "icon-margin",
-                  iconName: "OpenSource",
-                  key: "branch-name",
-                })}
-                {currentBranch.repository}
-              </Link>
-            </span>
-          </div>
-          <div className="release--add-button release--alert">
-            <Button
-              text="Delete"
-              danger={true}
-              onClick={() => this.setState({ viewType: 5 })}
-            />
+                text="Delete"
+                danger={true}
+                onClick={() => this.setState({ viewType: 5 })}
+              />
           </div>
         </div>);
       case 4: // NO SAVE
@@ -255,12 +334,27 @@ class Release extends React.Component<{}, IReleaseState>  {
           >
             Are you sure?
           </MessageCard>
-        );
+        );      
     }
   }
 }
 
-export const renderListRow = (
+export function getStatusIndicator(status?: ProjectStatus): any {
+  status = status || ProjectStatus.Running;
+  
+  switch (status) {
+    case ProjectStatus.Failed:
+      return Statuses.Failed;
+    case ProjectStatus.Running:
+      return Statuses.Running;
+    case ProjectStatus.Warning:
+      return Statuses.Warning;
+    case ProjectStatus.Succeeded:
+      return Statuses.Success;
+  }
+}
+
+export const renderBranchListRow = (
   index: number,
   item: IBranch,
   details: IListItemDetails<IBranch>,
@@ -281,7 +375,65 @@ export const renderListRow = (
         >
           <span className="text-ellipsis">{item.name}</span>
           <span className="fontSizeMS font-size-ms text-ellipsis secondary-text">
-            Generated by {item.user?.displayName}
+            <Link
+              className="scroll-hidden flex-row flex-baseline branch-link monospaced-text bolt-link subtle"
+              excludeTabStop
+              target="_blank"
+              href={item.repositoryUrl}
+            >
+              {Icon({
+                className: "icon-margin",
+                iconName: "OpenSource",
+                key: "branch-name",
+              })}
+              {item.repository}
+            </Link>
+          </span>
+        </div>
+      </div>
+    </ListItem>
+  );
+};
+
+export const renderReleaseRow = (
+  index: number,
+  item: IBranchRelease,
+  details: IListItemDetails<IBranchRelease>,
+  key?: string
+): JSX.Element => {
+  return (
+    <ListItem
+      className="master-row"
+      key={key || "list-item" + index}
+      index={index}
+      details={details}
+    >
+      <div className="list-example-row flex-row h-scroll-hidden">
+        <Status
+                {...getStatusIndicator(item.projectStatus)}
+                key="status"
+                size={StatusSize.m}
+                className="flex-self-center"
+              />
+        <div
+          style={{ marginLeft: "10px", padding: "10px 0px" }}
+          className="flex-column h-scroll-hidden"
+        >
+          <span className="text-ellipsis">{item.name}</span>
+          <span className="fontSizeMS font-size-ms text-ellipsis secondary-text">
+            <Link
+              className="scroll-hidden flex-row flex-baseline branch-link monospaced-text bolt-link subtle"
+              excludeTabStop
+              target="_blank"
+              href={item.repositoryUrl}
+            >
+              {Icon({
+                className: "icon-margin",
+                iconName: "OpenSource",
+                key: "branch-name",
+              })}
+              {item.repository}
+            </Link>
           </span>
         </div>
       </div>

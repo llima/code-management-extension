@@ -20,7 +20,9 @@ import {
   TaskAgentPoolReference,
   TaskDefinitionReference,
 } from "azure-devops-extension-api/Build";
-import { IBuildOptions } from "../model/buildOptions";
+
+import { IGitRelease } from "../model/git-release";
+import { ProjectStatus } from "../model/project-status";
 
 const client: BuildRestClient = getClient(BuildRestClient);
 
@@ -30,7 +32,8 @@ export interface PhaseTargetScript {
 }
 
 export async function CreateBuildDefinitionAsync(
-  options: IBuildOptions
+  repositoryName: string,
+  options: IGitRelease
 ): Promise<BuildDefinition> {
   const projectService = await DevOps.getService<IProjectPageService>(
     "ms.vss-tfs-web.tfs-page-data-service"
@@ -62,10 +65,10 @@ export async function CreateBuildDefinitionAsync(
   step.displayName = "Code Management Release Merge";
   step.enabled = true;
   step.inputs = {
-    sourceRepository: options.repositoryId,
+    repositoryUrl: options.repositoryUrl,
     releaseBranch: options.releaseBranch,
     basedBranch: options.basedBranch,
-    mergeBranches: options.mergeBranches.join(";"),
+    mergeBranches: JSON.stringify(options.mergeBranches),
   };
 
   const phase = {} as Phase;
@@ -90,7 +93,7 @@ export async function CreateBuildDefinitionAsync(
   agentPoolQueue.name = "Azure Pipelines";
 
   const definition = {} as BuildDefinition;
-  definition.name = "CODE-MANAGEMENT-REPOS";
+  definition.name = `CODE-MANAGEMENT-RELEASE-${repositoryName}-${new Date().getTime()}`;
   definition.type = DefinitionType.Build;
   definition.repository = repository;
   definition.process = designerProcess;
@@ -102,11 +105,11 @@ export async function CreateBuildDefinitionAsync(
 
   const userName = {} as BuildDefinitionVariable;
   userName.isSecret = true;
-  userName.value = options.user.displayName;
+  userName.value = options.user?.displayName ?? "";
 
   const userMail = {} as BuildDefinitionVariable;
   userMail.isSecret = true;
-  userMail.value = options.user.name;
+  userMail.value = options.user?.name ?? "";
 
   definition.variables = {
     code_management_pat: PAT,
@@ -115,6 +118,20 @@ export async function CreateBuildDefinitionAsync(
   };
 
   return await client.createDefinition(definition, currentProject?.name ?? "");
+}
+
+export async function DeletePipelineAsync(
+  buildDefinitionId: number
+): Promise<void> {
+  const projectService = await DevOps.getService<IProjectPageService>(
+    "ms.vss-tfs-web.tfs-page-data-service"
+  );
+
+  const currentProject = await projectService.getProject();
+  return await client.deleteDefinition(
+    currentProject?.name ?? "",
+    buildDefinitionId
+  );
 }
 
 export async function RunBuildAsync(buildDefinitionId: number): Promise<Build> {
@@ -136,4 +153,37 @@ export async function RunBuildAsync(buildDefinitionId: number): Promise<Build> {
   throw new Error(`Can't find build definition with id - ${buildDefinitionId}`);
 }
 
+export async function GetBuildStatusAsync(
+  buildId: number
+): Promise<ProjectStatus> {
+  try {
+    const projectService = await DevOps.getService<IProjectPageService>(
+      "ms.vss-tfs-web.tfs-page-data-service"
+    );
 
+    const currentProject = await projectService.getProject();
+    const build = await client.getBuild(currentProject?.name ?? "", buildId);
+
+    if (build == null) {
+      return ProjectStatus.Succeeded;
+    }
+
+    switch (build.status) {
+      case BuildStatus.None:
+      case BuildStatus.InProgress:
+      case BuildStatus.NotStarted:
+        return ProjectStatus.Running;
+      case BuildStatus.Cancelling:
+        return ProjectStatus.Failed;
+      case BuildStatus.Completed: {
+        return build.result === BuildResult.Succeeded
+          ? ProjectStatus.Succeeded
+          : ProjectStatus.Failed;
+      }
+      default:
+        return ProjectStatus.Running;
+    }
+  } catch (error) {
+    return ProjectStatus.Succeeded;
+  }
+}

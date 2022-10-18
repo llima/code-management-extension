@@ -1,8 +1,8 @@
 {
-  "name": "code-management-merges",
-  "version": "1.0.12",
+  "name": "code-management-versions",
+  "version": "1.0.0",
   "description": "Code Management Extension for Azure DevOps",
-  "main": "release-merge.js",
+  "main": "build-version.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/llima/code-management-extension"
@@ -20,12 +20,12 @@
   },
   "homepage": "./",
   "dependencies": {
-    "azure-pipelines-task-lib": "^3.1.3",
-    "shelljs": "^0.8.4"
+    "axios": "^0.27.2",
+    "azure-pipelines-task-lib": "^3.1.3"
   },
   "devDependencies": {
     "@types/node": "^12.0.0",
-    "@types/shelljs": "^0.8.9",
+    "@types/axios": "^0.14.0",
     "typescript": "^4.1.2"
   }
 }

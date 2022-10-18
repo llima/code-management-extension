@@ -8,4 +8,6 @@ export interface IBranch {
     repositoryUrl?: string;
     url?: string;
     user?: IUserContext;
+    basedOn?: string;
 }
+

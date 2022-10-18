@@ -1,7 +1,7 @@
 import tl = require("azure-pipelines-task-lib/task");
 import path = require("path");
 import shell = require("shelljs");
-
+import { IMergeBranch } from "./model/release";
 
 function makeGitUrl(url: string, username: string, pass: string): string {
   const type = username && pass ? 1 : !username && pass ? 2 : 0;
@@ -28,22 +28,23 @@ async function main(): Promise<void> {
   try {
     tl.setResourcePath(path.join(__dirname, "task.json"));
 
-    const sourceRepository = tl.getPathInput("sourceRepository", true) ?? "";
+    const repositoryUrl = tl.getPathInput("repositoryUrl", true) ?? "";
     const releaseBranch = tl.getPathInput("releaseBranch", true) ?? "";
-    const basedBranch = tl.getPathInput("basedBranch", true) ?? "develop";
+    const basedBranch = tl.getPathInput("basedBranch", true) ?? "main";
     const mergeBranches = tl.getPathInput("mergeBranches", true) ?? "";
 
     const username = tl.getVariable("code_management_username") ?? "";
     const usermail = tl.getVariable("code_management_usermail") ?? "";
     const PAT = tl.getVariable("code_management_pat") ?? "";
 
-    const workingDirectory = tl.getVariable("System.DefaultWorkingDirectory");
-    const sourceFolder = "CODE-MANAGEMENT-REPOS";
+    const sourceFolderTitle = "CODE-MANAGEMENT-RELEASE-REPOS";
 
-    const sourceGitUrl = makeGitUrl(sourceRepository, username, PAT);
+    const sourceFolder = `${sourceFolderTitle}`;
+    const sourceGitUrl = makeGitUrl(repositoryUrl, username, PAT);
     shell.exec(`git clone ${sourceGitUrl} ${sourceFolder}`);
 
-    shell.cd(sourceFolder);
+    //CHANGE DIRECTORY
+    shell.cd(`${sourceFolder}`);
 
     shell.exec(`git checkout ${basedBranch}`);
     shell.exec(`git checkout -b ${releaseBranch}`);
@@ -51,16 +52,19 @@ async function main(): Promise<void> {
     shell.exec(`git config user.email \"${usermail}\"`);
     shell.exec(`git config user.name \"${username}\"`);
 
-    const branches = mergeBranches.split(";");
-    for (let i = 0; i < branches.length; i++) {
-        const b = branches[i];
-        
-        shell.exec(`git fetch origin ${b}`);
-        shell.exec(`git merge origin/${b}`);
+    const branches = JSON.parse(mergeBranches) as IMergeBranch[];
+    for (let j = 0; j < branches.length; j++) {
+      const b = branches[j].branch;
+
+      shell.exec(`git fetch origin ${b}`);
+      shell.exec(`git merge origin/${b} --no-edit`);
+
+      shell.exec(`git push -d origin ${b}`);
     }
-    
-    //shell.exec("git commit -m \"Release merge made with Code Management Extensions!\"");
+
     shell.exec(`git push origin ${releaseBranch} --force`);
+
+    shell.cd("..");
 
     tl.setResult(tl.TaskResult.Succeeded, "Task completed!");
   } catch (err: any) {
