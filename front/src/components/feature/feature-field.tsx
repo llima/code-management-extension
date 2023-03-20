@@ -13,7 +13,7 @@ import { Button } from "azure-devops-ui/Button";
 import { Dropdown } from "azure-devops-ui/Dropdown";
 import { IListBoxItem } from 'azure-devops-ui/ListBox';
 import { Icon } from 'azure-devops-ui/Icon';
-import { CreateBranchAsync, DeleteBranchAsync, GetRepositoriesAsync } from '../../services/repository';
+import { CreateBranchAsync, CreatePullRequestAsync, DeleteBranchAsync, GetRepositoriesAsync, ExistsBranchAsync } from '../../services/repository';
 import { Transform } from '../../services/string';
 import { Services } from '../../services/services';
 import { BranchServiceId, IBranchService } from '../../services/branch';
@@ -26,6 +26,7 @@ import { MessageCard, MessageCardSeverity } from "azure-devops-ui/MessageCard";
 interface IFeatureState {
   viewType: number;
   currentBranch: IBranch;
+  openPullRequest: boolean;
 }
 
 class Feature extends React.Component<{}, IFeatureState>  {
@@ -41,7 +42,8 @@ class Feature extends React.Component<{}, IFeatureState>  {
 
     this.state = {
       viewType: 0,
-      currentBranch: {}
+      currentBranch: {},
+      openPullRequest: false
     }
 
     this.init();
@@ -67,7 +69,14 @@ class Feature extends React.Component<{}, IFeatureState>  {
         branch = { id: id, name: name, type: "feature", user: user, basedOn: "main" }
         view = 1
       };
-      this.setState({ currentBranch: branch, viewType: view })
+
+      var hasPullRequest = await ExistsBranchAsync({
+        repository: branch.repository,
+        name: branch.name,
+        type: "review"
+      });
+
+      this.setState({ currentBranch: branch, viewType: view, openPullRequest: hasPullRequest })
     }
     else {
       this.setState({ viewType: 4 })
@@ -99,9 +108,30 @@ class Feature extends React.Component<{}, IFeatureState>  {
     this.init();
   }
 
+  async createPullRequest() {
+    const { currentBranch } = this.state;
+
+    var user = DevOps.getUser();
+    var devBranch = {
+      name: currentBranch.name, 
+      type: "review", 
+      user: user, 
+      basedOn: `${currentBranch.type}/${currentBranch.name}`,
+      repository: currentBranch.repository
+    };
+    
+    var gitRepo = await CreateBranchAsync(devBranch);
+    
+    if (gitRepo != null) {
+      await CreatePullRequestAsync(devBranch, "develop");
+      
+      this.setState({ openPullRequest: true });
+    }
+  }
+
   render() {
 
-    const { viewType, currentBranch } = this.state;
+    const { viewType, currentBranch, openPullRequest } = this.state;
 
     switch (viewType) {
       case 0://LOADING
@@ -210,6 +240,13 @@ class Feature extends React.Component<{}, IFeatureState>  {
             </span>
           </div>
           <div className="feature--add-button feature--alert">
+            <Button
+              className="feature--mr-button"
+              text="Pull Request"
+              primary={true}
+              disabled={openPullRequest === true}
+              onClick={() => this.createPullRequest()}
+            />
             <Button
               text="Delete"
               danger={true}

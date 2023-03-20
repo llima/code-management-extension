@@ -16,4 +16,5 @@ export interface IBranchRelease {
     projectStatus?: ProjectStatus;
     buildDefinitionId?: number;
     buildRunId?: number;
+    type?: string;
 }
