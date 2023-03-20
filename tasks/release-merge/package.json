@@ -1,6 +1,6 @@
 {
   "name": "code-management-merges",
-  "version": "1.0.12",
+  "version": "1.0.8",
   "description": "Code Management Extension for Azure DevOps",
   "main": "release-merge.js",
   "repository": {
@@ -16,7 +16,7 @@
     "build": "npm run package-release",
     "clear": "(if exist build rd /q /s build)",
     "package-release": "tsc -p . && npm prune -production && npm run copy-files",
-    "copy-files": "copy icon.png build && copy task.json build && Xcopy node_modules build\\node_modules /E/H/C/I/Y"
+    "copy-files": "copy task.json build && Xcopy node_modules build\\node_modules /E/H/C/I/Y"
   },
   "homepage": "./",
   "dependencies": {

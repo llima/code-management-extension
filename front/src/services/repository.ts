@@ -6,7 +6,6 @@ import {
   GitRepository,
   GitRefUpdate,
   GitRestClient,
-  GitPullRequest
 } from "azure-devops-extension-api/Git";
 import { IBranch } from "../model/branch";
 
@@ -92,40 +91,28 @@ export async function DeleteBranchAsync(branch: IBranch): Promise<void> {
   }
 }
 
-export async function CreatePullRequestAsync(branch: IBranch, targetBranch: string): Promise<void> {
+export async function UpdateRepositoryAsync(branch: IBranch): Promise<void> {
   const projectService = await DevOps.getService<IProjectPageService>(
     "ms.vss-tfs-web.tfs-page-data-service"
   );
 
-  const currentProject = await projectService.getProject();
-
-  let gitPullRequest = {} as GitPullRequest;
-  gitPullRequest.sourceRefName = `refs/heads/${branch.type}/${branch.name}`;
-  gitPullRequest.targetRefName = `refs/heads/${targetBranch}`;
-  gitPullRequest.title = `PR: ${branch.type} - ${branch.name}`;
-
-  await client.createPullRequest(
-    gitPullRequest,
-    branch.repository ?? "",
-    currentProject?.name
-  );
-}
-
-export async function ExistsBranchAsync(branch: IBranch): Promise<boolean> {
-  const projectService = await DevOps.getService<IProjectPageService>(
-    "ms.vss-tfs-web.tfs-page-data-service"
-  );
-
-  if (branch.repository) {
+  if (branch.repository && branch.name) {
     const currentProject = await projectService.getProject();
-    const gitBranches = await client.getBranches(
+    const gitBranch = await client.getBranch(
       branch.repository,
+      `${branch.type}/${branch.name}`,
       currentProject?.name
     );
-  
-    var items = gitBranches.find(a => a.name == `${branch.type}/${branch.name}`);
-    return items != undefined;
-  }
 
-  return false;
+    if (gitBranch) {
+      let gitRepository = {} as GitRepository;
+      gitRepository.defaultBranch = `refs/heads/${branch.type}/${branch.name}`;
+
+      await client.updateRepository(
+        gitRepository,
+        branch.repository,
+        currentProject?.name
+      );
+    }
+  }
 }

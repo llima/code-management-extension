@@ -20,7 +20,7 @@ import { MessageCard, MessageCardSeverity } from "azure-devops-ui/MessageCard";
 import { IListItemDetails, ListItem, ScrollableList } from 'azure-devops-ui/List';
 import { ArrayItemProvider } from 'azure-devops-ui/Utilities/Provider';
 import { CreateBuildDefinitionAsync, DeletePipelineAsync, GetBuildStatusAsync, RunBuildAsync } from '../../services/pipeline';
-import { DeleteBranchAsync, GetRepositoryAsync } from '../../services/repository';
+import { GetRepositoryAsync, CreateBranchAsync, UpdateRepositoryAsync } from '../../services/repository';
 import { ProjectStatus } from '../../model/project-status';
 import { IBranchRelease, IRelease } from '../../model/release';
 import { IGitMergeBranch } from '../../model/git-release';
@@ -39,7 +39,7 @@ class Release extends React.Component<{}, IReleaseState>  {
   releaseService = Services.getService<IReleaseService>(BranchServiceId);
 
   private items: ArrayItemProvider<IBranch> = new ArrayItemProvider([]);
-  private itemsView: ArrayItemProvider<IBranchRelease> = new ArrayItemProvider([]);
+  private itemsVew: ArrayItemProvider<IBranchRelease> = new ArrayItemProvider([]);
 
   private branches: IBranch[] = [];
   private currentWorkItem: any = {};
@@ -51,33 +51,20 @@ class Release extends React.Component<{}, IReleaseState>  {
       viewType: 0,
       currentRelease: { branches: [] }
     }
-    
-    this.refresh();
 
-    setTimeout(() => {
-      this.init();
-    }, 1000);
-  }
-
-  async refresh() {
-    var workItem = await this.workItemFormService;
-    workItem.refresh();
+    this.init();
   }
 
   async init() {
-    this.branches = [];
-    this.items = new ArrayItemProvider([]);
-    this.itemsView = new ArrayItemProvider([]);
-    
-    var workItem = await this.workItemFormService;
-    workItem.refresh();
 
-    this.currentWorkItem = await workItem.getFieldValues(["System.Title", "System.Id", "System.WorkItemType", "System.State"]);
+    var workItem = await this.workItemFormService;
+    this.currentWorkItem = await workItem.getFieldValues(["System.Title", "System.Id", "System.WorkItemType"]);
     var id = this.currentWorkItem["System.Id"].toString();
 
     if (id != 0) {
+
       var relations = await workItem.getWorkItemRelations();
-      
+
       for (const relation of relations) {
         var relationId = relation.url.substring(relation.url.lastIndexOf('/') + 1);
         var branch = await this.branchService.getById(relationId);
@@ -113,16 +100,11 @@ class Release extends React.Component<{}, IReleaseState>  {
         }
 
         if (updateStatus) {
-          await this.releaseService.save(release);          
+          await this.releaseService.save(release);
         }
 
-        //Remove Release Item
-        if (this.currentWorkItem["System.State"].toString() == "Done") {
-          await this.releaseService.remove(release.id ?? "");          
-        }
-
-        this.itemsView = new ArrayItemProvider(release.branches);
-      }
+        this.itemsVew = new ArrayItemProvider(release.branches);        
+      };
 
       this.setState({ currentRelease: release, viewType: view });
     }
@@ -154,6 +136,20 @@ class Release extends React.Component<{}, IReleaseState>  {
         mergeBranches.push(mergeBranch);
       }
 
+      //Create branch
+      await CreateBranchAsync({ 
+        repository: repository.id, 
+        type: 'release',
+        name: currentRelease.name
+      });
+
+      await UpdateRepositoryAsync({
+        repository: repository.id,
+        type: 'release',
+        name: currentRelease.name
+      });
+
+      //Create Pipeline Merge
       var token = DevOps.getConfiguration().witInputs["PATField"].toString();
       var releaseOption = {
         repositoryId: repository.id,
@@ -175,32 +171,23 @@ class Release extends React.Component<{}, IReleaseState>  {
         buildRunId: runBuild.id,
         url: `${repository.webUrl}?version=GBrelease/${escape(currentRelease.name ?? "")}`,
         repositoryUrl: repository.webUrl,
-        projectStatus: ProjectStatus.Running,
-        type: "release"
+        projectStatus: ProjectStatus.Running
       });
+
     }
 
     await this.releaseService.save(currentRelease);
 
-    //Remove related items, not git branches.
-    for (const b of this.branches) {
-      this.branchService.remove(b.id ?? "");
-    }
-
-    this.itemsView = new ArrayItemProvider(currentRelease.branches);
     this.setState({ viewType: 3, currentRelease: currentRelease });
   }
 
   async delete() {
-    const { currentRelease } = this.state;
+    // const { currentBranch } = this.state;
 
-    for (const branch of currentRelease.branches) {
-      await DeleteBranchAsync(branch);
-    }
+    // await DeleteBranchAsync(currentBranch);
+    // this.branchService.remove(currentBranch.id ?? "");
 
-    await this.releaseService.remove(currentRelease.id ?? "");
-
-    this.init();
+    // this.init();
   }
 
   async getBuildStatus(that: this) {
@@ -256,26 +243,21 @@ class Release extends React.Component<{}, IReleaseState>  {
           </div>
           <div className="release--group" style={{ display: "flex", height: "150px" }}>
 
-            { this.items.length > 0 ? 
-                <ScrollableList
-                  itemProvider={this.items}
-                  renderRow={renderBranchListRow}
-                  width="100%"
-                />
-                : <span>No related items were found.</span>
-            }
+            <ScrollableList
+              itemProvider={this.items}
+              renderRow={renderBranchListRow}
+              width="100%"
+            />
+
           </div>
-          <div className="release--add-button">            
+          <div className="release--add-button">
             <Button
-              className="release--mr-button"
               text="Cancel"
               onClick={() => this.setState({ viewType: 1 })}
             />
             <Button
-              className={`${this.items.length == 0 ? "disabled" : ""}`}
               text="Create"
               primary={true}
-              disabled={this.items.length == 0}
               onClick={() => this.create()}
             />
           </div>
@@ -295,18 +277,14 @@ class Release extends React.Component<{}, IReleaseState>  {
           <div className="release--group" style={{ display: "flex", height: "150px" }}>
 
             <ScrollableList
-              itemProvider={this.itemsView}
+              itemProvider={this.itemsVew}
               renderRow={renderReleaseRow}
               width="100%"
             />
 
           </div>
           <div className="release--add-button">
-            <Button
-                text="Delete"
-                danger={true}
-                onClick={() => this.setState({ viewType: 5 })}
-              />
+
           </div>
         </div>);
       case 4: // NO SAVE
